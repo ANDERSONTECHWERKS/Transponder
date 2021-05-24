@@ -18,7 +18,7 @@ public class debugObj {
 		this.outputPayloadList.add(payload);
 	}
 	
-	public boolean evaluatePayloadEquivilance() {
+	public boolean evaluatePayloadEquivalance() {
 		for(Payload currPayload : this.outputPayloadList) {
 			System.out.println("inputPayload: \n" + this.inputPayload.toString());
 			System.out.println("outputPayload: \n" + currPayload.toString());

@@ -26,41 +26,57 @@ public class tClient implements Runnable {
 	private boolean debugFlag = false;
 	private debugObj debugObject = null;
 	
+	// Create tClient from a localSocket instance. 
 	tClient(Socket localSocket){
 		this.clientSocketLocal = localSocket;
 		
 		if(localSocket.isBound()) {
+			// Output for debugFlag
+			if(this.debugFlag == true) {
+				System.out.println("tClient| localSocket already bound on creation!");
+				System.out.println("tClient| Setting socketLocalAddr to " + localSocket.getLocalSocketAddress().toString());
+			}
 			this.socketLocalAddr = localSocket.getLocalSocketAddress();
 		}
 		
 		if(localSocket.isConnected()) {
+			// Output for debugFlag
+			if(this.debugFlag == true) {
+				System.out.println("tClient| localSocket already connected on creation!");
+				System.out.println("tClient| Setting socketRemoteAddr to " + localSocket.getRemoteSocketAddress().toString());
+			}
 			this.socketRemoteAddr = localSocket.getRemoteSocketAddress();
 		}
 	}
+
 	
-	tClient(Socket localSocket,SocketAddress localAddress, SocketAddress remoteEndpoint){
-		if(localSocket.isBound()) {
-			throw new IllegalStateException("localSocket is already bound!");
+	public void setRemoteSocketAddress(SocketAddress remoteAddr) {
+		// Output for debugFlag
+		if(this.debugFlag == true) {
+			System.out.println("tClient| setting socketRemoteAddr to " + remoteAddr.toString());
 		}
 		
-		this.clientSocketLocal = localSocket;
-		this.socketLocalAddr = localAddress;
-		this.socketRemoteAddr = remoteEndpoint;
-	}
-	
-	public void setRemoteSocketAddress(SocketAddress endpoint) {
-		this.socketRemoteAddr = endpoint;
+		this.socketRemoteAddr = remoteAddr;
 	}
 	
 	public void setLocalSocketAddress(SocketAddress localAddress) {
+		// Output for debugFlag
+		if(this.debugFlag == true) {
+			System.out.println("tClient| setting socketLocalAddr to " + localAddress.toString());
+		}
 		this.socketLocalAddr = localAddress;
 	}
 	
 	public void connectLocalTCP() {
 		if(this.socketRemoteAddr == null) {
-			throw new IllegalStateException("socketRemoteAddr not set!");
+			throw new IllegalStateException("tClient| socketRemoteAddr not set!");
 		}
 		try {
+			// Output for debugFlag
+			if(this.debugFlag == true) {
+				System.out.println("tClient| attempting connectLocalTCP to: ");
+				System.out.println(this.socketRemoteAddr.toString());
+			}
 			this.clientSocketLocal.connect(this.socketRemoteAddr);
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
@@ -68,15 +84,25 @@ public class tClient implements Runnable {
 		}
 	}
 	
+	// bindLocalTCP attempts to bind clientSocketLocal to the address specified by socketLocalAddr
 	public void bindLocalTCP() {
 		if(this.socketLocalAddr == null) {
-			throw new IllegalArgumentException("tClient Local socket not set!");
+			throw new IllegalArgumentException("tClient| Local socket not set!");
 		}
 		if(this.clientSocketLocal.isBound()) {
+			// Output for debugFlag
+			if(this.debugFlag == true) {
+				System.out.println("tClient| bindLocalTCP: Already bound! Returning!");
+			}
 			return;
 		}
 		
 		try {
+			// Output for debugFlag
+			if(this.debugFlag == true) {
+				System.out.println("tClient| bindLocalTCP attempting to bind to address: \n");
+				System.out.println(this.socketLocalAddr.toString());
+			}
 			this.clientSocketLocal.bind(socketLocalAddr);
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
@@ -85,49 +111,91 @@ public class tClient implements Runnable {
 		
 	}
 	
+	// receiveTCP attempts to obtain an inputStream from clientSocketLocal and assign it to clientStream
 	public void receiveTCP() {
 		try {
-			clientStream = this.clientSocketLocal.getInputStream();
+			// Output for debugFlag
+			if(this.debugFlag == true) {
+				System.out.println("tClient| attempting receiveTCP from clientSocketLocal and instantiate clientStream object...");
+				System.out.println("tClient| clientSocketLocal local address: " + this.clientSocketLocal.getLocalAddress().toString() +
+						"Port: " + this.clientSocketLocal.getLocalPort());
+				System.out.println("tClient| clientSocketLocal remote address: " + this.clientSocketLocal.getRemoteSocketAddress().toString() +
+						"Port: " + this.clientSocketLocal.getPort());
+			}
 			
+			clientStream = this.clientSocketLocal.getInputStream();
+
+			// Output for debugFlag
+			if(this.debugFlag == true) {
+				if(this.clientStream instanceof InputStream) {
+					System.out.println("tClient| clientStream instantiated successfully!");
+				}
+			}
+			
+			this.objInpStream = new ObjectInputStream(this.clientStream);
+			
+			// Output for debugFlag
+			if(this.debugFlag == true) {
+				if(this.objInpStream instanceof ObjectInputStream) {
+					System.out.println("tClient| objInpStream instantiated successfully!");
+				}
+			}
+			
+			// TODO: Create type-check for this.incomingPayload
+			// This is likely a huge security issue to just *blatantly accept* objects and cast them
+			// as Payloads. 
+			this.incomingPayload = (Payload) objInpStream.readObject();
+			
+			// Debug check and method execution
+			if(this.debugFlag == true) {
+				System.out.println("tClient| Payload recieved! Payload toString() reads: \n");
+				System.out.println("- - - - - - - - - -");
+				System.out.println(this.incomingPayload.toString());
+				System.out.println("- - - - - - - - - -");
+
+				this.debugPayloadIntegrity();
+			}
+			
+			// Print the received payload
+			// TODO: Decide and develop what to do with the received payload from here
+			// Intended functionality is NOT to simply receive a payload and toString() it.
+
+			System.out.println(this.incomingPayload);
+
 		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (ClassNotFoundException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
 	}
 
+	// runs the thread
+	// 
 	@Override
 	public void run() {
 		// TODO: Rewrite this run method, consider how you want this to behave.
 		// TODO Auto-generated method stub
 		while(this.stopFlag == false) {
 			
-			try {
-				if(!this.clientSocketLocal.isBound()) {
-					this.bindLocalTCP();
-				}
-				
-				if(!this.clientSocketLocal.isConnected()) {
-					this.connectLocalTCP();
-				}
-
-				this.clientStream = clientSocketLocal.getInputStream();
-				this.objInpStream = new ObjectInputStream(this.clientStream);
-				// TODO: Create type-check for this.incomingPayload
-				this.incomingPayload = (Payload) objInpStream.readObject();
-				
-				// Debug check and method execution
+			if(!this.clientSocketLocal.isBound()) {
+				// Output for debugFlag
 				if(this.debugFlag == true) {
-					this.debugPayloadIntegrity();
+					System.out.println("tClient| clientSocketLocal is NOT BOUND! Running bindLocalTCP!");
 				}
-				
-				// Print the received payload
-				// TODO: Decide and develop what to do with the received payload from here
-				// Intended functionality is NOT to simply receive a payload and toString() it.
-				System.out.println(this.incomingPayload);
-			} catch (IOException | ClassNotFoundException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
+				this.bindLocalTCP();
 			}
+			
+			if(!this.clientSocketLocal.isConnected()) {
+				// Output for debugFlag
+				if(this.debugFlag == true) {
+					System.out.println("tClient| clientSocketLocal is NOT CONNECTED! Running connectLocalTCP!");
+				}
+				this.connectLocalTCP();
+			}
+			
+			this.receiveTCP();
 		}
 	}
 	
@@ -140,7 +208,7 @@ public class tClient implements Runnable {
 		if(this.socketRemoteAddr != null) {
 			return this.socketRemoteAddr.toString();
 		} else {
-			throw new IllegalStateException("No clientSocketLocal set! Unable to return string!");
+			throw new IllegalStateException("tClient| No clientSocketLocal set! Unable to return string!");
 		}
 	}
 	
@@ -150,7 +218,7 @@ public class tClient implements Runnable {
 		if(this.incomingPayload != null) {
 			return this.incomingPayload;
 		} else {
-			throw new IllegalStateException("tClient incomingPayload is null!");
+			throw new IllegalStateException("tClient| incomingPayload is null!");
 		}
 	}
 	
@@ -165,7 +233,7 @@ public class tClient implements Runnable {
 	public void debugPayloadIntegrity() {
 		if(this.debugFlag == true) {
 			if(this.incomingPayload == null) {
-				System.out.println("tClient incomingPayload not set!");
+				System.out.println("tClient| incomingPayload not set!");
 			}
 		}
 		if(this.incomingPayload != null) {

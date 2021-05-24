@@ -38,7 +38,9 @@ public class TransponderTCP{
 	}
 	public TransponderTCP(int mode, ServerSocket localServerSocket, Socket localSock, SocketAddress localAddress, SocketAddress remoteAddress) {
 		this.mode = mode;
-		tClient client = new tClient(localSock, localAddress,remoteAddress);
+		tClient client = new tClient(localSock);
+		client.setLocalSocketAddress(localAddress);
+		client.setRemoteSocketAddress(remoteAddress);
 		this.tClientSet.add(client);
 		this.serverSocket = localServerSocket;
 	}

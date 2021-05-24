@@ -15,7 +15,7 @@ public class Tests extends TestCase{
 
 	
 	@Test
-	public void testMode1TransponderTCP() {
+	public void testMode1andMode2TransponderTCPLocal() {
 		ServerSocket servSock;
 		TransponderTCP testTranspServer;
 		InetSocketAddress serverSockAddr = new InetSocketAddress("127.0.0.1",6969);
@@ -38,7 +38,8 @@ public class Tests extends TestCase{
 			testTranspClient.setDebugObject(dObj);
 			testTranspClient.run();
 
-			assertTrue(dObj.evaluatePayloadEquivilance());
+			assertTrue(dObj.evaluatePayloadEquivalance());
+			System.out.println("dObj evaluatePayloadEquivalence result: " + dObj.evaluatePayloadEquivalance());
 			
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
