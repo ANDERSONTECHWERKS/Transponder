@@ -10,11 +10,10 @@ import java.util.Scanner;
 public class ControllerMenu {
 	private static ControllerMenu mainMenu = null;
 	private int mode = 0;
-	private int maxConnections = 0;
 	private TransponderTCP currTransponder = null;
 	private Scanner inputScanner = null;
 	private boolean debugFlag = false;
-
+	private Thread transponderThread = null;
 	
 	public ControllerMenu() {
 		if(this.inputScanner == null) {
@@ -62,6 +61,7 @@ public class ControllerMenu {
 		this.mode = this.promptModeSetting(altScanner);
 		// Mode 1 is server-only
 		if (this.mode == 1) {
+			// Create Server socket, use it in the constructor for currTransponder
 			ServerSocket mode1ServSock = this.promptServerSocket(this.inputScanner);
 			this.currTransponder = new TransponderTCP(1,mode1ServSock,mode1ServSock.getLocalSocketAddress());
 			
@@ -75,11 +75,16 @@ public class ControllerMenu {
 			if(this.debugFlag == true) {
 				this.currTransponder.setDebugFlag(true);
 			}
-			this.currTransponder.run();
+			
+			// Create Transponder thread and start it
+			Thread transponderThread = new Thread(this.currTransponder);
+			this.transponderThread = transponderThread;
+			transponderThread.start();
 		}
 
 		// Mode 2 is client-only
 		if (this.mode == 2) {
+			// Create client socket, use it in the constructor for currTransponder
 			Socket mode2Sock = this.promptClientSocket(this.inputScanner);
 			this.currTransponder = new TransponderTCP(2,mode2Sock, mode2Sock.getRemoteSocketAddress());
 
@@ -90,7 +95,10 @@ public class ControllerMenu {
 				this.currTransponder.setDebugFlag(true);
 			}
 
-			this.currTransponder.run();
+			// Create Transponder thread and start it
+			Thread transponderThread = new Thread(this.currTransponder);
+			this.transponderThread = transponderThread;
+			transponderThread.start();
 		}
 	}
 
@@ -216,9 +224,8 @@ public class ControllerMenu {
 		String serverInput = keyboardInput.next();
 		System.out.println("Input Local Server Socket:\n");
 		portInput = keyboardInput.nextInt();
-		System.out.println("Input MAXIMUM number of connections on local server:\n");
+		System.out.println("Input connection backlog value on local server:\n");
 		backlogInput = keyboardInput.nextInt();
-		this.maxConnections = backlogInput;
 
 		// Create InetAddress object using constructor
 		// With string as the input

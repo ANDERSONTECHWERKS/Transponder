@@ -9,7 +9,7 @@ import java.net.SocketException;
 import java.util.HashMap;
 import java.util.HashSet;
 
-public class TransponderTCP {
+public class TransponderTCP implements Runnable{
 	int mode;
 	private HashSet<tClient> tClientSet = new HashSet<tClient>();
 	private HashSet<Thread> clientThreads = new HashSet<Thread>();
@@ -27,29 +27,23 @@ public class TransponderTCP {
 		this.mode = mode;
 	}
 
-	public TransponderTCP(int mode, Socket clientSock, SocketAddress remoteAddr) {
-		this.mode = mode;
-		tClient client = new tClient(clientSock);
-		client.setRemoteSocketAddress(remoteAddr);
-		this.tClientSet.add(client);
-	}
 
+	// Constructor for Mode 1(Server)
 	public TransponderTCP(int mode, ServerSocket localServerSocket, SocketAddress localSockAddr) {
 		this.mode = mode;
 		this.serverSocket = localServerSocket;
 		this.tServerSockAddr = localSockAddr;
 	}
 
-	public TransponderTCP(int mode, ServerSocket localServerSocket, Socket localSock, SocketAddress localAddress,
-			SocketAddress remoteAddress) {
+	// Constructor for Mode 2 (Client)
+	public TransponderTCP(int mode, Socket clientSock, SocketAddress remoteAddr) {
 		this.mode = mode;
-		tClient client = new tClient(localSock);
-		client.setLocalSocketAddress(localAddress);
-		client.setRemoteSocketAddress(remoteAddress);
+		tClient client = new tClient(clientSock);
+		client.setRemoteSocketAddress(remoteAddr);
 		this.tClientSet.add(client);
-		this.serverSocket = localServerSocket;
 	}
-
+	
+	@Override
 	public void run() {
 
 		if (this.mode == 1) {
@@ -142,38 +136,25 @@ public class TransponderTCP {
 			System.out.println("Listening for connection at: " + this.serverSocket.getInetAddress());
 		}
 
-		// Listen for incoming connections, then create tServer objects
-		// and initialize payload, then...
-		// as the connections come in, starting each thread after creation.
-		// Also: Put them into the respective tServerSet, tServerThreadSet.
-		// Then run().
-		try {
-			Socket listener = this.serverSocket.accept();
+		tServer server = new tServer(this.serverSocket,this.tServerSockAddr);
+		server.setOutgoingPayload(serverPayload);
 
-			if (this.debugFlag == true) {
-				System.out.println("Client connected from: " + listener.getInetAddress().toString());
-			}
-
-			tServer server = new tServer(this.serverSocket, listener);
-			server.setOutgoingPayload(serverPayload);
-
-			if (this.debugFlag == true) {
-				System.out.println("Creating tServer instance and starting thread");
-				server.setDebugFlag(true);
-			}
-
-			Thread serverThread = new Thread(server);
-
-			serverThread.setName("tServer " + server.getLocalAddr());
-			this.tServerSet.add(server);
-			this.serverThreads.add(serverThread);
-
-			serverThread.start();
-
-		} catch (IOException e) {
-			e.printStackTrace();
+		if (this.debugFlag == true) {
+			System.out.println("DebugFlag set to TRUE! Setting debugFlag on server instance!");
+			server.setDebugFlag(true);
 		}
 
+		Thread serverThread = new Thread(server);
+
+		serverThread.setName("tServer " + server.getLocalAddr());
+		this.tServerSet.add(server);
+		this.serverThreads.add(serverThread);
+
+		serverThread.start();
+
+		if (this.debugFlag == true) {
+			System.out.println("tServer Instance " + serverThread.getName() + " created!");
+		}
 	}
 
 	// This method configures Mode 2

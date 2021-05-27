@@ -167,6 +167,29 @@ public class tClient implements Runnable {
 			}
 		}
 		
+		if (this.clientSocketLocal.isClosed()) {
+			if (this.debugFlag == true) {
+				System.out.println("clientSocketLocal not ready! Socket is closed!");
+			}
+			throw new IllegalStateException("tClient| Socket has been closed!");
+		}
+
+		if (!this.clientSocketLocal.isBound()) {
+			// Output for debugFlag
+			if (this.debugFlag == true) {
+				System.out.println("tClient| clientSocketLocal is NOT BOUND! Running bindLocalTCP!");
+			}
+			this.bindLocalTCP();
+		}
+
+		if (!this.clientSocketLocal.isConnected()) {
+			// Output for debugFlag
+			if (this.debugFlag == true) {
+				System.out.println("tClient| clientSocketLocal is NOT CONNECTED! Running connectLocalTCP!");
+			}
+			this.connectLocalTCP();
+		}
+		
 		return true;
 	}
 
@@ -239,25 +262,7 @@ public class tClient implements Runnable {
 		// TODO: Rewrite this run method, consider how you want this to behave.
 		// TODO: Consider whether or not we need this run block within a do(while)-loop
 
-		if (this.clientSocketLocal.isClosed()) {
-			throw new IllegalStateException("tClient| Socket has been closed!");
-		}
 
-		if (!this.clientSocketLocal.isBound()) {
-			// Output for debugFlag
-			if (this.debugFlag == true) {
-				System.out.println("tClient| clientSocketLocal is NOT BOUND! Running bindLocalTCP!");
-			}
-			this.bindLocalTCP();
-		}
-
-		if (!this.clientSocketLocal.isConnected()) {
-			// Output for debugFlag
-			if (this.debugFlag == true) {
-				System.out.println("tClient| clientSocketLocal is NOT CONNECTED! Running connectLocalTCP!");
-			}
-			this.connectLocalTCP();
-		}
 		if(this.isClientReady() == true) {
 			// Receive the TCP transmission
 			this.receiveTCP();

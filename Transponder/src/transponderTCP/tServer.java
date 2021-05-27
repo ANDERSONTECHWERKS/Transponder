@@ -182,6 +182,17 @@ public class tServer implements Runnable {
 				}
 			}
 			
+			
+			try {
+				this.remoteSocketTCP = this.ServerSocketTCP.accept();
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
+
+			if (this.debugFlag == true) {
+				System.out.println("Client connected from: " + this.remoteSocketTCP.getRemoteSocketAddress().toString());
+			}
+
 			this.transmitPayload(this.outgoingPayload);
 	}
 
