@@ -124,23 +124,24 @@ public class tServer implements Runnable {
 	// run method for thread execution
 	@Override
 	public void run() {
-
-		// Debug flag check
-		if (this.debugFlag == true) {
-			if (this.debugObject != null) {
-				this.debugPayloadIntegrity();
-				System.out.println("tServer debugPayloadIntegrity ran...");
-				System.out.println("tServer Transmitting Payload...");
+		while(this.stopFlag == false) {
+			// Debug flag check
+			if (this.debugFlag == true) {
+				if (this.debugObject != null) {
+					this.debugPayloadIntegrity();
+					System.out.println("tServer debugPayloadIntegrity ran...");
+					System.out.println("tServer Transmitting Payload...");
+				}
 			}
-		}
 
-		// Sleep and transmit
-		try {
-			Thread.sleep(100);
-		} catch (InterruptedException e) {
-			e.printStackTrace();
+			// Sleep and transmit
+			try {
+				Thread.sleep(100);
+			} catch (InterruptedException e) {
+				e.printStackTrace();
+			}
+			this.transmitPayload(this.outgoingPayload);
 		}
-		this.transmitPayload(this.outgoingPayload);
 	}
 
 	public void stop() {

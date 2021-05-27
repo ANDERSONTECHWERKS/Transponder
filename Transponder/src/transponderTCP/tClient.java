@@ -118,12 +118,15 @@ public class tClient implements Runnable {
 			if(this.debugFlag == true) {
 				System.out.println("tClient| attempting receiveTCP from clientSocketLocal and instantiate clientStream object...");
 				System.out.println("tClient| clientSocketLocal local address: " + this.clientSocketLocal.getLocalAddress().toString() +
-						"Port: " + this.clientSocketLocal.getLocalPort());
+						" Port: " + this.clientSocketLocal.getLocalPort());
 				System.out.println("tClient| clientSocketLocal remote address: " + this.clientSocketLocal.getRemoteSocketAddress().toString() +
-						"Port: " + this.clientSocketLocal.getPort());
+						" Port: " + this.clientSocketLocal.getPort());
 			}
 			
-			clientStream = this.clientSocketLocal.getInputStream();
+			//Check if clientStream exists yet. If not - create it.
+			if(this.clientStream == null) {
+				clientStream = this.clientSocketLocal.getInputStream();
+			}
 
 			// Output for debugFlag
 			if(this.debugFlag == true) {
@@ -132,8 +135,11 @@ public class tClient implements Runnable {
 				}
 			}
 			
-			this.objInpStream = new ObjectInputStream(this.clientStream);
-			
+			//Check if objInpStream exists yet. If not - create it.
+			if(this.clientStream == null) {
+				this.objInpStream = new ObjectInputStream(this.clientStream);
+			}
+
 			// Output for debugFlag
 			if(this.debugFlag == true) {
 				if(this.objInpStream instanceof ObjectInputStream) {
