@@ -33,6 +33,12 @@ public class tServer implements Runnable {
 		this.ServerSocketTCP = serverSocket;
 	}
 	
+	public tServer(ServerSocket serverSocket, Socket clientSocket) {
+		this.ServerSocketTCP = serverSocket;
+		this.localAddrTCP = this.ServerSocketTCP.getLocalSocketAddress();
+		this.remoteSocketTCP = clientSocket;
+	}
+	
 	// listen() checks for pre-binding and checks/binds the 
 	// local TCP address (localAddrTCP), assuming localAddrTCP is set.
 	// listen() then accepts TCP connections on the assigned port
@@ -124,11 +130,24 @@ public class tServer implements Runnable {
 			if(this.debugFlag == true) {
 				this.debugPayloadIntegrity();
 				System.out.println("tServer debugPayloadIntegrity ran...");
-				System.out.println("tServer listening...");
+				System.out.println("tServer Transmitting Payload...");
 			}
 			
-			// Listen call
-			this.listen();
+			// Sleep and transmit
+			try {
+				Thread.sleep(100);
+			} catch (InterruptedException e) {
+				e.printStackTrace();
+			}
+			this.transmitPayload(this.outgoingPayload);
+		}
+		
+		// If the stopFlag is set to True, 
+		// close the socket.
+		try {
+			this.ServerSocketTCP.close();
+		} catch (IOException e) {
+			e.printStackTrace();
 		}
 	}
 
@@ -163,5 +182,49 @@ public class tServer implements Runnable {
 			this.debugObject.setInputPayload(outgoingPayload);
 		}
 		
+	}
+	
+	public String getLocalAddr() {
+		if(this.localAddrTCP == null) {
+			return "localAddrTCP not set!";
+		}
+		return this.localAddrTCP.toString();
+	}
+	
+	public String getRemoteAddr() {
+		if(this.remoteSocketTCP == null) {
+			return "remoteSocketTCP not set!";
+		}
+		return this.remoteSocketTCP.getRemoteSocketAddress().toString();
+	}
+	
+	public String getStatus() {
+		String status = "";
+		status += "Connection Status: \n";
+		
+		status +="Local Address settings: \n";
+		if(this.localAddrTCP == null) {
+			status += "Local Address set to null!\n";
+		} else {
+			status +="Local Address set to:\n";
+			status +="TCP: "+this.localAddrTCP.toString();
+		}
+		
+		status +="Remote Address settings: \n";
+		if(this.remoteSocketTCP == null) {
+			status += "No remote socket set! \n";
+		} else {
+			status += "Remote Address set to:\n";
+			status +="TCP: "+ this.remoteSocketTCP.getRemoteSocketAddress().toString();
+		}
+		
+		status += "Payload status: \n";
+		if(this.isPayloadPresent() == false) {
+			status +="Payload is not present!\n";
+		} else {
+			status +="Payload loaded. Current payload:\n";
+			status += this.outgoingPayload.toString();
+		}
+		return status;
 	}
 }
