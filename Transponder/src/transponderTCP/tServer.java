@@ -40,40 +40,41 @@ public class tServer implements Runnable {
 		this.remoteSocketTCP = clientSocket;
 	}
 
+	// Deprecated: We listen() in the TransponderTCP class now.
 	// listen() checks for pre-binding and checks/binds the
 	// local TCP address (localAddrTCP), assuming localAddrTCP is set.
 	// listen() then accepts TCP connections on the assigned port
 	// and assigns the connection to a socket (remoteSocketTCP)
-	public void listen() {
-		try {
-			if (!this.ServerSocketTCP.isBound()) {
-
-				// Debug output for when debugFlag is set to TRUE
-				if (this.debugFlag == true) {
-					System.out.println("tServer not bound! Binding to:\n " + localAddrTCP.toString());
-				}
-				this.ServerSocketTCP.bind(localAddrTCP);
-			}
-			this.remoteSocketTCP = ServerSocketTCP.accept();
-
-			// Debug output for when debugFlag is set to TRUE
-			if (this.debugFlag == true) {
-				System.out.println("tServer accepted connection from:\n"
-						+ this.remoteSocketTCP.getRemoteSocketAddress().toString());
-				System.out.println("At local address: \n" + this.remoteSocketTCP.getLocalSocketAddress().toString());
-				System.out.println("tServer transmitting the following payload:\n");
-				System.out.println("- - - - - - - - - -");
-				System.out.println(this.outgoingPayload.toString());
-				System.out.println("- - - - - - - - - -");
-			}
-
-			this.transmitPayload(outgoingPayload);
-		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
-
-	}
+//	public void listen() {
+//		try {
+//			if (!this.ServerSocketTCP.isBound()) {
+//
+//				// Debug output for when debugFlag is set to TRUE
+//				if (this.debugFlag == true) {
+//					System.out.println("tServer not bound! Binding to:\n " + localAddrTCP.toString());
+//				}
+//				this.ServerSocketTCP.bind(localAddrTCP);
+//			}
+//			this.remoteSocketTCP = ServerSocketTCP.accept();
+//
+//			// Debug output for when debugFlag is set to TRUE
+//			if (this.debugFlag == true) {
+//				System.out.println("tServer accepted connection from:\n"
+//						+ this.remoteSocketTCP.getRemoteSocketAddress().toString());
+//				System.out.println("At local address: \n" + this.remoteSocketTCP.getLocalSocketAddress().toString());
+//				System.out.println("tServer transmitting the following payload:\n");
+//				System.out.println("- - - - - - - - - -");
+//				System.out.println(this.outgoingPayload.toString());
+//				System.out.println("- - - - - - - - - -");
+//			}
+//
+//			this.transmitPayload(outgoingPayload);
+//		} catch (IOException e) {
+//			// TODO Auto-generated catch block
+//			e.printStackTrace();
+//		}
+//
+//	}
 
 	// isPayloadPresent returns a boolean TRUE if the outgoingPayload
 	// field is populated with a Payload object, false if not.
@@ -104,30 +105,66 @@ public class tServer implements Runnable {
 	// then creates an outputStream, as well as an associated object output stream
 	// (objOutputStream) and writes the object to the output
 	public void transmitPayload(Payload payload) {
+		
+
+		
 		if (this.outgoingPayload == null) {
 			throw new IllegalArgumentException("tServer payload not set!");
 		}
 		try {
 			if (this.outputStream == null) {
 				this.outputStream = this.remoteSocketTCP.getOutputStream();
+				
 			}
 			if (this.objOutputStream == null) {
 				this.objOutputStream = new ObjectOutputStream(this.outputStream);
 			}
+			
+			
 			// debug output for when debugFlag set to TRUE
 			if (this.debugFlag == true) {
-				System.out.println("tServer objOutputStream created. Writing payload to objOutputStream.");
+				System.out.println("tServer| objOutputStream created. Writing payload to objOutputStream.");
+				System.out.println("tServer| Writing Object: \n" + this.outgoingPayload.toString());
 			}
-			this.objOutputStream.writeObject(payload);
+			
+			if(this.debugFlag == true) {
+				System.out.println("tServer| ServerSocket and Stream Status:");
+
+				if(this.objOutputStream == null) {
+					System.out.println("objOutputStream is null!");
+				} else {
+					System.out.println(this.objOutputStream.toString());
+				}
+
+				if(this.outputStream == null) {
+					System.out.println("outputStream is null!");
+				} else {
+					System.out.println(this.outputStream.toString());					
+				}
+				
+				if(this.remoteSocketTCP == null) {
+					System.out.println("remoteSocketTCP is null!");
+				} else {
+					System.out.println(this.remoteSocketTCP.toString());					
+				}
+			}
+
+			if(this.remoteSocketTCP.isConnected() == true){
+				this.objOutputStream.writeObject(payload);
+				this.objOutputStream.flush();
+			}
+			
+
 		} catch (SocketException e) {
 			if (this.debugFlag == true) {
 				System.out.println("tServer| Socket Exception occurred!");
+				System.out.println("Setting stopFlag to TRUE!");
+				this.stopFlag = true;
 			}
 			e.printStackTrace();
 		} catch (IOException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
-		}
+		} 
 	}
 
 	// run method for thread execution
@@ -142,16 +179,15 @@ public class tServer implements Runnable {
 					System.out.println("tServer Transmitting Payload...");
 				}
 			}
-
-			// Sleep and transmit
 			try {
-				Thread.sleep(100);
+				Thread.sleep(1000);
 			} catch (InterruptedException e) {
 				e.printStackTrace();
 			}
 			this.transmitPayload(this.outgoingPayload);
 		}
 	}
+
 
 	public void stop() {
 

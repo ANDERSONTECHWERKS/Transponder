@@ -65,19 +65,20 @@ public class TransponderTCP{
 	public void stop() {
 		this.stopFlag = true;
 		this.mode = 0;
+
 		for(tClient currClient : this.tClientSet) {
 			currClient.stop();
 		}
-		
+
 		for(tServer currServer : this.tServerSet) {
 			currServer.stop();
 		}
-		
+
 		// If we are in Mode 1 (Server):
 		// Close the serverSocket
 		// This happens in each tServer instance as well,
 		// But close it everywhere just to be sure.
-		
+
 		if(this.mode == 1) {
 			try {
 				this.serverSocket.close();
@@ -86,7 +87,7 @@ public class TransponderTCP{
 			}
 		}
 	}
-	
+
 	public void bindLocalServerSock(SocketAddress localEndpoint) {
 		try {
 			this.serverSocket.bind(localEndpoint);
@@ -169,7 +170,9 @@ public class TransponderTCP{
 				serverThread.setName("tServer "+ server.getLocalAddr());
 				this.tServerSet.add(server);
 				this.serverThreads.add(serverThread);
+
 				serverThread.run();
+
 			} catch (IOException e) {
 				e.printStackTrace();
 			}
