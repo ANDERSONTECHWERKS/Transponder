@@ -73,14 +73,20 @@ public class TransponderTCP{
 			currServer.stop();
 		}
 		
+		// If we are in Mode 1 (Server):
 		// Close the serverSocket
 		// This happens in each tServer instance as well,
 		// But close it everywhere just to be sure.
-		try {
-			this.serverSocket.close();
-		} catch (IOException e) {
-			e.printStackTrace();
+		
+		if(this.mode == 1) {
+			try {
+				this.serverSocket.close();
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
 		}
+
+
 	}
 	
 	public void bindLocalServerSock(SocketAddress localEndpoint) {
@@ -133,14 +139,22 @@ public class TransponderTCP{
 			throw new IllegalStateException("tServerSockAddr not set!");
 		}
 		
+		if(this.debugFlag == true) {
+			System.out.println("Listening for connection at: "
+					 + this.serverSocket.getInetAddress());
+		}
+		
 		// Listen for incoming connections, then create tServer objects
+		// and initialize payload, then...
 		// as the connections come in, starting each thread after creation.
 		// Also: Put them into the respective tServerSet, tServerThreadSet.
 		// Then run().
 		while(stopFlag == false) {
 			try {
 				Socket listener = this.serverSocket.accept();
+
 				tServer server = new tServer(this.serverSocket,listener);
+				server.setOutgoingPayload(serverPayload);
 				Thread serverThread = new Thread(server);
 				
 				serverThread.setName("tServer "+ server.getLocalAddr());
@@ -151,6 +165,7 @@ public class TransponderTCP{
 				e.printStackTrace();
 			}
 		}
+
 	}
 	
 	// This method configures Mode 2

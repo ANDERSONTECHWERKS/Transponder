@@ -13,6 +13,7 @@ public class ControllerMenu {
 	private int maxConnections = 0;
 	private TransponderTCP currTransponder = null;
 	private Scanner inputScanner = null;
+	private boolean debugFlag = false;
 
 	
 	public ControllerMenu() {
@@ -24,12 +25,35 @@ public class ControllerMenu {
 		if (this.mode == 1) {
 			ServerSocket mode1ServSock = this.promptServerSocket(inputScanner);
 			this.currTransponder = new TransponderTCP(1,mode1ServSock,mode1ServSock.getLocalSocketAddress());
+		
+			
+			// After creating the transponder, 
+			// prompt and initialize the payload.
+			Payload initPayload = this.promptPayload(inputScanner);
+			this.currTransponder.setInitialServerPayload(initPayload);
+			
+			// Debug prompt and set
+			this.debugFlag = this.promptDebugFlag(inputScanner);
+			if(this.debugFlag == true) {
+				this.currTransponder.setDebugFlag(true);
+			}
+			
+			this.currTransponder.run();
+
 		}
 
 		// Mode 2 is client-only
 		if (this.mode == 2) {
 			Socket mode2Sock = this.promptClientSocket(inputScanner);
 			this.currTransponder = new TransponderTCP(2,mode2Sock, mode2Sock.getRemoteSocketAddress());
+			
+			// Debug prompt and set
+			this.debugFlag = this.promptDebugFlag(inputScanner);
+			if(this.debugFlag == true) {
+				this.currTransponder.setDebugFlag(true);
+			}
+			this.currTransponder.run();
+
 		}
 	}
 
@@ -40,6 +64,18 @@ public class ControllerMenu {
 		if (this.mode == 1) {
 			ServerSocket mode1ServSock = this.promptServerSocket(this.inputScanner);
 			this.currTransponder = new TransponderTCP(1,mode1ServSock,mode1ServSock.getLocalSocketAddress());
+			
+			// After creating the transponder, 
+			// prompt and initialize the payload.
+			Payload initPayload = this.promptPayload(inputScanner);
+			this.currTransponder.setInitialServerPayload(initPayload);
+			
+			// Debug prompt and set
+			this.debugFlag = this.promptDebugFlag(inputScanner);
+			if(this.debugFlag == true) {
+				this.currTransponder.setDebugFlag(true);
+			}
+
 		}
 
 		// Mode 2 is client-only
@@ -47,6 +83,13 @@ public class ControllerMenu {
 			Socket mode2Sock = this.promptClientSocket(this.inputScanner);
 			this.currTransponder = new TransponderTCP(2,mode2Sock, mode2Sock.getRemoteSocketAddress());
 		}
+		
+		// Debug prompt and set
+		this.debugFlag = this.promptDebugFlag(inputScanner);
+		if(this.debugFlag == true) {
+			this.currTransponder.setDebugFlag(true);
+		}
+
 	}
 
 	public static void main(String[] args) {
@@ -104,12 +147,29 @@ public class ControllerMenu {
 					if (this.mode == 1) {
 						ServerSocket mode1ServSock = this.promptServerSocket(inputScanner);
 						this.currTransponder = new TransponderTCP(1,mode1ServSock,mode1ServSock.getLocalSocketAddress());
+						
+						// After creating the transponder, 
+						// prompt and initialize the payload.
+						Payload initPayload = this.promptPayload(inputScanner);
+						this.currTransponder.setInitialServerPayload(initPayload);
+						
+						// Debug prompt and set
+						this.debugFlag = this.promptDebugFlag(inputScanner);
+						if(this.debugFlag == true) {
+							this.currTransponder.setDebugFlag(true);
+						}
 					}
 
 					// Mode 2 is client-only
 					if (this.mode == 2) {
 						Socket mode2Sock = this.promptClientSocket(inputScanner);
 						this.currTransponder = new TransponderTCP(2,mode2Sock, mode2Sock.getRemoteSocketAddress());
+						
+						// Debug prompt and set
+						this.debugFlag = this.promptDebugFlag(inputScanner);
+						if(this.debugFlag == true) {
+							this.currTransponder.setDebugFlag(true);
+						}
 					}
 				} else if (this.currTransponder instanceof TransponderTCP) {
 					System.out.println("Transponder already running!");
@@ -180,6 +240,13 @@ public class ControllerMenu {
 
 		return serverSocket;
 	}
+	
+	public void setDebugFlag(Boolean bool) {
+		if(this.currTransponder == null) {
+			
+		}
+	}
+
 
 	public int promptModeSetting(Scanner keyboardInput) {
 		// Simply prompt and return mode setting
@@ -247,6 +314,23 @@ public class ControllerMenu {
 		return clientSocket;
 	}
 	
+	public boolean promptDebugFlag(Scanner userInput) {
+		System.out.println("Debug mode? \n");
+		System.out.println("1 - ON\n2 - OFF");
+		int response = userInput.nextInt();
+		if(response == 1) {
+			return true;
+		}
+		
+		if(response == 2) {
+			return false;
+		}
+		return false;
+	}
+	// prompyPayload will prompt develop a payload via user input
+	// and return the Payload object
+	// This will likely change as Transponder is developed further
+
 	public Payload promptPayload(Scanner userInput) {
 
 		if(this.currTransponder == null) {
@@ -254,7 +338,8 @@ public class ControllerMenu {
 		}
 
 		System.out.println("Please enter the name of this Payload:");
-		String payloadTitle = userInput.nextLine();
+		String payloadTitle = userInput.next();
+
 		System.out.println("Please enter the serial number of this Payload:");
 		int payloadNumber = userInput.nextInt();
 		
