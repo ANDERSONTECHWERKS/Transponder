@@ -118,7 +118,7 @@ public class tServer implements Runnable {
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
-		}
+		} 
 	}
 
 	// run method for thread execution

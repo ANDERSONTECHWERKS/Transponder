@@ -136,7 +136,7 @@ public class tClient implements Runnable {
 			}
 			
 			//Check if objInpStream exists yet. If not - create it.
-			if(this.clientStream == null) {
+			if(this.objInpStream == null) {
 				this.objInpStream = new ObjectInputStream(this.clientStream);
 			}
 
