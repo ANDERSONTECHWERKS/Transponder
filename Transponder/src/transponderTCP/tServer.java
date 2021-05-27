@@ -153,6 +153,10 @@ public class tServer implements Runnable {
 
 			if(this.remoteSocketTCP.isConnected() == true && !this.remoteSocketTCP.isClosed()){
 				this.objOutputStream.writeObject(payload);
+
+				this.objOutputStream.close();
+				this.outputStream.close();
+				this.remoteSocketTCP.close();
 			}
 			
 
@@ -184,7 +188,9 @@ public class tServer implements Runnable {
 			
 			
 			try {
-				this.remoteSocketTCP = this.ServerSocketTCP.accept();
+				while(this.stopFlag == false) {
+					this.remoteSocketTCP = this.ServerSocketTCP.accept();
+				}
 			} catch (IOException e) {
 				e.printStackTrace();
 			}

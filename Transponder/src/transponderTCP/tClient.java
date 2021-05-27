@@ -7,6 +7,7 @@ import java.io.ObjectInputStream;
 import java.net.Socket;
 import java.net.SocketAddress;
 import java.net.SocketException;
+import java.net.UnknownHostException;
 
 // Transponder-Client 
 // clientSocketLocal: Local socket
@@ -29,9 +30,13 @@ public class tClient implements Runnable {
 	private debugObj debugObject = null;
 
 	// Create tClient from a localSocket instance.
+	// We are expecting that this socket is completely constructed (Local and remote addresses assigned)
+	// If this isn't happening: Make it happen at the ControllerMenu / TransponderTCP level!
 	tClient(Socket localSocket) {
+		// Assign socket to field
 		this.clientSocketLocal = localSocket;
 
+		// Check if we have a localSocket that is already bound. Pull the LocalSocketAddress from it.
 		if (localSocket.isBound()) {
 			// Output for debugFlag
 			if (this.debugFlag == true) {
@@ -42,6 +47,7 @@ public class tClient implements Runnable {
 			this.socketLocalAddr = localSocket.getLocalSocketAddress();
 		}
 
+		// Check if the localSocket is connected. If it is, pull the RemoteSocketAddress from it.
 		if (localSocket.isConnected()) {
 			// Output for debugFlag
 			if (this.debugFlag == true) {
@@ -86,7 +92,6 @@ public class tClient implements Runnable {
 			this.clientSocketLocal.connect(this.socketRemoteAddr);
 
 		} catch (IOException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
 	}
@@ -113,18 +118,53 @@ public class tClient implements Runnable {
 			}
 			this.clientSocketLocal.bind(socketLocalAddr);
 		} catch (IOException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
 
 	}
 
+	// Pre-flight checks for transmission of Payload
 	public boolean isClientReady() {
 
+		// Check if we have an existing clientSocket that we closed.
+		// If it is closed, we will recreate and reassign the Socket using that very ugly constructor below
+
+		if (this.clientSocketLocal.isClosed()) {
+			if (this.debugFlag == true) {
+				System.out.println("clientSocketLocal not ready! Socket is closed!");
+			}
+			
+			// Ugly constructor we are using to recreate the socket
+			try {
+				
+				this.clientSocketLocal = new Socket(this.clientSocketLocal.getInetAddress().toString(),this.clientSocketLocal.getLocalPort()
+						, this.clientSocketLocal.getLocalAddress(),this.clientSocketLocal.getLocalPort());
+				
+			} catch (UnknownHostException e) {
+				e.printStackTrace();
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
+		}
+		
+		if (!this.clientSocketLocal.isBound()) {
+			// Output for debugFlag
+			if (this.debugFlag == true) {
+				System.out.println("tClient| clientSocketLocal is NOT BOUND! Running bindLocalTCP!");
+			}
+			this.bindLocalTCP();
+		}
+
+		if (!this.clientSocketLocal.isConnected()) {
+			// Output for debugFlag
+			if (this.debugFlag == true) {
+				System.out.println("tClient| clientSocketLocal is NOT CONNECTED! Running connectLocalTCP!");
+			}
+			this.connectLocalTCP();
+		}
+		
 		// Output for debugFlag
 		if (this.debugFlag == true) {
-			System.out.println(
-					"tClient| attempting receiveTCP from clientSocketLocal and instantiate clientStream object...");
 			System.out.println(
 					"tClient| clientSocketLocal local address: " + this.clientSocketLocal.getLocalAddress().toString()
 							+ " Port: " + this.clientSocketLocal.getLocalPort());
@@ -167,28 +207,9 @@ public class tClient implements Runnable {
 			}
 		}
 		
-		if (this.clientSocketLocal.isClosed()) {
-			if (this.debugFlag == true) {
-				System.out.println("clientSocketLocal not ready! Socket is closed!");
-			}
-			throw new IllegalStateException("tClient| Socket has been closed!");
-		}
 
-		if (!this.clientSocketLocal.isBound()) {
-			// Output for debugFlag
-			if (this.debugFlag == true) {
-				System.out.println("tClient| clientSocketLocal is NOT BOUND! Running bindLocalTCP!");
-			}
-			this.bindLocalTCP();
-		}
 
-		if (!this.clientSocketLocal.isConnected()) {
-			// Output for debugFlag
-			if (this.debugFlag == true) {
-				System.out.println("tClient| clientSocketLocal is NOT CONNECTED! Running connectLocalTCP!");
-			}
-			this.connectLocalTCP();
-		}
+
 		
 		return true;
 	}
@@ -206,6 +227,7 @@ public class tClient implements Runnable {
 				Object temp = objInpStream.readObject();
 				
 				if (temp instanceof Payload) {
+
 					this.incomingPayload = (Payload) temp;
 
 					// Debug check and method execution
@@ -232,12 +254,20 @@ public class tClient implements Runnable {
 
 			System.out.println("Payload recieved at time " + System.currentTimeMillis());
 
-			this.clearPayload();
+			this.cleanupClientConnection();
 
 	}
 
-	public void clearPayload() {
+	// Closes streams, and the clientSocketRemote
+	public void cleanupClientConnection() {
+		
 		this.incomingPayload = null;
+		try {
+			this.clientStream.close();
+			this.clientSocketLocal.close();
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
 	}
 
 	public void checkConnectionResetKeepAlive() {
@@ -259,9 +289,7 @@ public class tClient implements Runnable {
 	// runs the thread
 	@Override
 	public void run() {
-		// TODO: Rewrite this run method, consider how you want this to behave.
 		// TODO: Consider whether or not we need this run block within a do(while)-loop
-
 
 		if(this.isClientReady() == true) {
 			// Receive the TCP transmission

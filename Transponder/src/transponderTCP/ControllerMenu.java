@@ -37,7 +37,10 @@ public class ControllerMenu {
 				this.currTransponder.setDebugFlag(true);
 			}
 			
-			this.currTransponder.run();
+			// Create Transponder thread and start it
+			Thread transponderThread = new Thread(this.currTransponder);
+			this.transponderThread = transponderThread;
+			transponderThread.start();
 
 		}
 
@@ -51,7 +54,11 @@ public class ControllerMenu {
 			if(this.debugFlag == true) {
 				this.currTransponder.setDebugFlag(true);
 			}
-			this.currTransponder.run();
+			
+			// Create Transponder thread and start it
+			Thread transponderThread = new Thread(this.currTransponder);
+			this.transponderThread = transponderThread;
+			transponderThread.start();
 
 		}
 	}
