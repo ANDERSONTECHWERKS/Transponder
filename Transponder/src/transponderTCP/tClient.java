@@ -1,5 +1,6 @@
 package transponderTCP;
 
+import java.io.BufferedInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.ObjectInputStream;
@@ -20,7 +21,7 @@ public class tClient implements Runnable {
 	private Socket clientSocketLocal = null;
 	private SocketAddress socketLocalAddr = null;
 	private SocketAddress socketRemoteAddr = null;
-	private InputStream clientStream = null;
+	private BufferedInputStream clientStream = null;
 	private ObjectInputStream objInpStream = null;
 	private Payload incomingPayload = null;
 	private boolean stopFlag = false;
@@ -132,7 +133,7 @@ public class tClient implements Runnable {
 
 			// Check if clientStream exists yet. If not - create it.
 			if (this.clientStream == null) {
-				clientStream = this.clientSocketLocal.getInputStream();
+				clientStream = new BufferedInputStream(this.clientSocketLocal.getInputStream());
 			}
 
 			// Output for debugFlag
@@ -163,7 +164,7 @@ public class tClient implements Runnable {
 				Object temp = objInpStream.readObject();
 
 				if (temp instanceof Payload) {
-					this.incomingPayload = (Payload) objInpStream.readObject();
+					this.incomingPayload = (Payload) temp;
 				}
 			} catch (IOException e) {
 				e.printStackTrace();

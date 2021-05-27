@@ -178,6 +178,7 @@ public class tServer implements Runnable {
 					System.out.println("tServer Transmitting Payload...");
 				}
 			}
+			
 			this.transmitPayload(this.outgoingPayload);
 		}
 	}
