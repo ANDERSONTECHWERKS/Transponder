@@ -180,12 +180,16 @@ public class TransponderTCP{
 			
 			// Debug flag condition actions
 			if(this.debugFlag == true) {
+				currClient.setDebugFlag(true);
+
 				if(this.debugObj == null) {
-					throw new IllegalStateException("TransponderTCP debugObj not set!");
+					System.out.println("debugObj not set for client " + currClient.getRemoteAddrString());
+					System.out.println("Not using debugObj for debug purposes! Messages only!");
 				}	
 				
-				currClient.setDebugFlag(true);
-				currClient.setDebugObj(debugObj);
+				if(this.debugObj instanceof debugObj) {
+					currClient.setDebugObj(debugObj);
+				}
 			}
 			
 			// Create a new client thread, change thread name, add to 
