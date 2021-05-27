@@ -86,6 +86,7 @@ public class TransponderTCP{
 			}
 		}
 
+
 	}
 	
 	public void bindLocalServerSock(SocketAddress localEndpoint) {
@@ -164,6 +165,7 @@ public class TransponderTCP{
 				e.printStackTrace();
 			}
 		}
+
 	}
 	
 	// This method configures Mode 2

@@ -14,6 +14,7 @@ public class ControllerMenu {
 	private TransponderTCP currTransponder = null;
 	private Scanner inputScanner = null;
 	private boolean debugFlag = false;
+
 	
 	public ControllerMenu() {
 		if(this.inputScanner == null) {
@@ -38,6 +39,7 @@ public class ControllerMenu {
 			}
 			
 			this.currTransponder.run();
+
 		}
 
 		// Mode 2 is client-only
@@ -51,6 +53,7 @@ public class ControllerMenu {
 				this.currTransponder.setDebugFlag(true);
 			}
 			this.currTransponder.run();
+
 		}
 	}
 
@@ -72,6 +75,7 @@ public class ControllerMenu {
 			if(this.debugFlag == true) {
 				this.currTransponder.setDebugFlag(true);
 			}
+
 		}
 
 		// Mode 2 is client-only
@@ -85,6 +89,7 @@ public class ControllerMenu {
 		if(this.debugFlag == true) {
 			this.currTransponder.setDebugFlag(true);
 		}
+
 	}
 
 	public static void main(String[] args) {
@@ -129,6 +134,7 @@ public class ControllerMenu {
 				break;
 
 			case 2:
+
 				if(this.currTransponder == null) {
 					
 					// If we have cleared the currTransponder (or it never existed)
@@ -241,6 +247,7 @@ public class ControllerMenu {
 		}
 	}
 
+
 	public int promptModeSetting(Scanner keyboardInput) {
 		// Simply prompt and return mode setting
 		// TODO: Set boundary integers for modes (1 through 2 only)
@@ -323,6 +330,7 @@ public class ControllerMenu {
 	// prompyPayload will prompt develop a payload via user input
 	// and return the Payload object
 	// This will likely change as Transponder is developed further
+
 	public Payload promptPayload(Scanner userInput) {
 
 		if(this.currTransponder == null) {
@@ -331,6 +339,7 @@ public class ControllerMenu {
 
 		System.out.println("Please enter the name of this Payload:");
 		String payloadTitle = userInput.next();
+
 		System.out.println("Please enter the serial number of this Payload:");
 		int payloadNumber = userInput.nextInt();
 		
