@@ -1,9 +1,13 @@
 package transponderTCP;
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.net.InetSocketAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.net.SocketAddress;
+import java.util.Scanner;
+
 import org.junit.Assert;
 import org.junit.Test;
 
@@ -13,7 +17,7 @@ import junit.framework.TestCase;
 public class Tests extends TestCase{
 
 
-	
+	// This test checks if we can create two TransponderTCP objects and have them communicate
 	@Test
 	public void testMode1andMode2TransponderTCPLocal() {
 		ServerSocket servSock;
@@ -45,5 +49,69 @@ public class Tests extends TestCase{
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
+	}
+	
+	// This test checks that our menu creates the appropriate Sockets and ServerSockets used as input
+	// for our Transponder objects.
+	@Test
+	public void testMenuObjects() {
+		// This test may be confusing. 
+		// Basically: What we are doing is feeding inputStreams into the scanner
+		// to simulate user input.
+		// The first input simulates a user selecting mode 1 and creating a
+		// serverSocket.
+		// The second input is used to call a method on that object and return a client
+		// socket object. 
+		// ...Not the most standardized way to test methods, but we'll work on it.
+		
+		String createMode1Input = new String("1" + System.lineSeparator() + "127.0.0.1"
+				+ System.lineSeparator() + "6969" + System.lineSeparator()  
+				+ System.lineSeparator() + "1");
+		String createClientSocketInput = new String("127.0.0.1"
+				+ System.lineSeparator() + "7000" + System.lineSeparator() + "127.0.0.1"
+				+ System.lineSeparator() + "6969");
+		
+		// Note: We recreate the scanner and inputStream when testing different
+		// methods
+		// These objects are, ultimately, setting up a menu object that 
+		// creates a currTransponder object in mode 1 (server) as well as 
+		// creating a Socket object using the method within the testMenu 
+		// object that is setup to connect to the currTransponder object 
+		// contained within our testMenu.
+		// End-goal here: Test that our Socket creation methods are 
+		// producing the objects with the states that we want.
+		InputStream input = new ByteArrayInputStream(createMode1Input.getBytes());
+		Scanner testScanner = new Scanner(input);
+		ControllerMenu testMenu = new ControllerMenu(testScanner);
+		input = new ByteArrayInputStream(createClientSocketInput.getBytes());
+		testScanner = new Scanner(input);
+		
+		// Creating this socket tests the output of 
+		// ControllerMenu.reqClientAddrIPV4TCP
+		Socket testSocket = testMenu.promptClientSocket(testScanner);
+		
+		
+		// Then we gather the fields from the created testSocket
+		String testSockLocalAddr = testSocket.getLocalAddress().toString();
+		String testSockRemoteAddr = testSocket.getInetAddress().toString();
+		int testSockLocalPort = testSocket.getLocalPort();
+		int testSockRemotePort = testSocket.getPort();
+		
+		assertEquals(testSockLocalAddr.compareTo("/127.0.0.1"),0);
+		assertEquals(testSockRemoteAddr.compareTo("/127.0.0.1"),0);
+		assertTrue(testSockLocalPort == 7000);
+		assertTrue(testSockRemotePort == 6969);
+
+		
+	}
+	
+	@Test
+	public void testMenuToTransponder() {
+		
+	}
+	
+	@Test
+	public void testMenuToTransponderMultiple() {
+		
 	}
 }

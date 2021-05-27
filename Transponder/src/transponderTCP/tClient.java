@@ -240,4 +240,35 @@ public class tClient implements Runnable {
 			this.debugObject.addOutputPayload(incomingPayload);
 		}
 	}
+	
+	public String getStatus() {
+		String status = "";
+		status += "Connection Status: \n";
+		
+		status +="Local Address settings: \n";
+		if(this.socketLocalAddr == null) {
+			status += "Local Address set to null!\n";
+		} else {
+			status +="Local Address set to:\n";
+			status +="TCP: "+ this.socketLocalAddr.toString();
+		}
+		
+		status +="Remote Address settings: \n";
+		if(this.socketRemoteAddr.toString() == null) {
+			status += "No remote socket set! \n";
+		} else {
+			status += "Remote Address set to:\n";
+			status +="TCP: "+ this.socketRemoteAddr.toString();
+		}
+		
+		status += "Payload status: \n";
+		if(this.incomingPayload == null) {
+			status +="Payload not received! Currently: null \n";
+		} else 
+			if(this.incomingPayload instanceof Payload){
+			status +="Payload received. Current payload:\n";
+			status += this.incomingPayload.toString();
+		}
+		return status;
+	}
 }
