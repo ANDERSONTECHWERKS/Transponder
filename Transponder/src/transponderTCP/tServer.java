@@ -52,7 +52,6 @@ public class tServer implements Runnable {
 				if (this.debugFlag == true) {
 					System.out.println("tServer not bound! Binding to:\n " + localAddrTCP.toString());
 				}
-
 				this.ServerSocketTCP.bind(localAddrTCP);
 			}
 			this.remoteSocketTCP = ServerSocketTCP.accept();
@@ -109,10 +108,10 @@ public class tServer implements Runnable {
 			throw new IllegalArgumentException("tServer payload not set!");
 		}
 		try {
-			if(this.outputStream == null) {
+			if (this.outputStream == null) {
 				this.outputStream = this.remoteSocketTCP.getOutputStream();
 			}
-			if(this.objOutputStream == null) {
+			if (this.objOutputStream == null) {
 				this.objOutputStream = new ObjectOutputStream(this.outputStream);
 			}
 			// debug output for when debugFlag set to TRUE

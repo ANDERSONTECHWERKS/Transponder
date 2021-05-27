@@ -26,19 +26,20 @@ public class TransponderTCP{
 	public TransponderTCP(int mode) {
 		this.mode = mode;
 	}
-	
+
 	public TransponderTCP(int mode, Socket clientSock, SocketAddress remoteAddr) {
 		this.mode = mode;
 		tClient client = new tClient(clientSock);
 		client.setRemoteSocketAddress(remoteAddr);
 		this.tClientSet.add(client);
 	}
-	
+
 	public TransponderTCP(int mode, ServerSocket localServerSocket, SocketAddress localSockAddr) {
 		this.mode = mode;
 		this.serverSocket = localServerSocket;
 		this.tServerSockAddr = localSockAddr;
 	}
+
 	public TransponderTCP(int mode, ServerSocket localServerSocket, Socket localSock, SocketAddress localAddress, SocketAddress remoteAddress) {
 		this.mode = mode;
 		tClient client = new tClient(localSock);
@@ -47,7 +48,6 @@ public class TransponderTCP{
 		this.tClientSet.add(client);
 		this.serverSocket = localServerSocket;
 	}
-
 
 	public void run() {
 
@@ -85,8 +85,6 @@ public class TransponderTCP{
 				e.printStackTrace();
 			}
 		}
-
-
 	}
 	
 	public void bindLocalServerSock(SocketAddress localEndpoint) {
@@ -153,7 +151,6 @@ public class TransponderTCP{
 			try {
 				Socket listener = this.serverSocket.accept();
 
-				
 				if(this.debugFlag == true) {
 					System.out.println("Client connected from: " + 
 				listener.getInetAddress().toString());
@@ -177,7 +174,6 @@ public class TransponderTCP{
 				e.printStackTrace();
 			}
 		}
-
 	}
 	
 	// This method configures Mode 2
@@ -187,7 +183,7 @@ public class TransponderTCP{
 		if(this.mode != 2) {
 			this.mode = 2;
 		}	
-		
+
 		for(tClient currClient : this.tClientSet) {
 			
 			// Debug flag condition actions

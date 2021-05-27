@@ -150,7 +150,9 @@ public class tClient implements Runnable {
 			// TODO: Create type-check for this.incomingPayload
 			// This is likely a huge security issue to just *blatantly accept* objects and cast them
 			// as Payloads. 
-			this.incomingPayload = (Payload) objInpStream.readObject();
+			if(objInpStream.readObject() instanceof Payload) {
+				this.incomingPayload = (Payload) objInpStream.readObject();
+			}
 			
 			// Debug check and method execution
 			if(this.debugFlag == true) {
