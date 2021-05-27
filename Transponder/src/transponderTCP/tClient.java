@@ -71,16 +71,20 @@ public class tClient implements Runnable {
 	}
 
 	public void connectLocalTCP() {
+
 		if (this.socketRemoteAddr == null) {
 			throw new IllegalStateException("tClient| socketRemoteAddr not set!");
 		}
+
 		try {
 			// Output for debugFlag
 			if (this.debugFlag == true) {
 				System.out.println("tClient| attempting connectLocalTCP to: ");
 				System.out.println(this.socketRemoteAddr.toString());
 			}
+
 			this.clientSocketLocal.connect(this.socketRemoteAddr);
+
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -115,45 +119,61 @@ public class tClient implements Runnable {
 
 	}
 
+	public boolean isSocketReady() {
+
+		// Output for debugFlag
+		if (this.debugFlag == true) {
+			System.out.println(
+					"tClient| attempting receiveTCP from clientSocketLocal and instantiate clientStream object...");
+			System.out.println(
+					"tClient| clientSocketLocal local address: " + this.clientSocketLocal.getLocalAddress().toString()
+							+ " Port: " + this.clientSocketLocal.getLocalPort());
+			System.out.println("tClient| clientSocketLocal remote address: "
+					+ this.clientSocketLocal.getRemoteSocketAddress().toString() + " Port: "
+					+ this.clientSocketLocal.getPort());
+		}
+
+		// Check if clientStream exists yet. If not - create it.
+		if (this.clientStream == null) {
+			try {
+				clientStream = new BufferedInputStream(this.clientSocketLocal.getInputStream());
+			} catch (IOException e) {
+				e.printStackTrace();
+				return false;
+			}
+		}
+
+		// Output for debugFlag
+		if (this.debugFlag == true) {
+			if (this.clientStream instanceof InputStream) {
+				System.out.println("tClient| clientStream instantiated successfully!");
+			}
+		}
+
+		// Check if objInpStream exists yet. If not - create it.
+		if (this.objInpStream == null) {
+			try {
+				this.objInpStream = new ObjectInputStream(this.clientStream);
+			} catch (IOException e) {
+				e.printStackTrace();
+				return false;
+			}
+		}
+
+		// Output for debugFlag
+		if (this.debugFlag == true) {
+			if (this.objInpStream instanceof ObjectInputStream) {
+				System.out.println("tClient| objInpStream instantiated successfully!");
+			}
+		}
+		
+		return true;
+	}
+
 	// receiveTCP attempts to obtain an inputStream from clientSocketLocal and
 	// assign it to clientStream
 	public void receiveTCP() {
 		try {
-			// Output for debugFlag
-			if (this.debugFlag == true) {
-				System.out.println(
-						"tClient| attempting receiveTCP from clientSocketLocal and instantiate clientStream object...");
-				System.out.println("tClient| clientSocketLocal local address: "
-						+ this.clientSocketLocal.getLocalAddress().toString() + " Port: "
-						+ this.clientSocketLocal.getLocalPort());
-				System.out.println("tClient| clientSocketLocal remote address: "
-						+ this.clientSocketLocal.getRemoteSocketAddress().toString() + " Port: "
-						+ this.clientSocketLocal.getPort());
-			}
-
-			// Check if clientStream exists yet. If not - create it.
-			if (this.clientStream == null) {
-				clientStream = new BufferedInputStream(this.clientSocketLocal.getInputStream());
-			}
-
-			// Output for debugFlag
-			if (this.debugFlag == true) {
-				if (this.clientStream instanceof InputStream) {
-					System.out.println("tClient| clientStream instantiated successfully!");
-				}
-			}
-
-			// Check if objInpStream exists yet. If not - create it.
-			if (this.objInpStream == null) {
-				this.objInpStream = new ObjectInputStream(this.clientStream);
-			}
-
-			// Output for debugFlag
-			if (this.debugFlag == true) {
-				if (this.objInpStream instanceof ObjectInputStream) {
-					System.out.println("tClient| objInpStream instantiated successfully!");
-				}
-			}
 
 			// TODO: Create type-check for this.incomingPayload
 			// This is likely a huge security issue to just *blatantly accept* objects and
@@ -165,21 +185,21 @@ public class tClient implements Runnable {
 
 				if (temp instanceof Payload) {
 					this.incomingPayload = (Payload) temp;
+
+					// Debug check and method execution
+					if (this.debugFlag == true) {
+						System.out.println("tClient| Payload recieved! Payload toString() reads: \n");
+						System.out.println("- - - - - - - - - -");
+						System.out.println(this.incomingPayload.toString());
+						System.out.println("- - - - - - - - - -");
+
+						if (this.debugObject != null) {
+							this.debugPayloadIntegrity();
+						}
+					}
 				}
 			} catch (IOException e) {
 				e.printStackTrace();
-			}
-
-			// Debug check and method execution
-			if (this.debugFlag == true) {
-				System.out.println("tClient| Payload recieved! Payload toString() reads: \n");
-				System.out.println("- - - - - - - - - -");
-				System.out.println(this.incomingPayload.toString());
-				System.out.println("- - - - - - - - - -");
-
-				if (this.debugObject != null) {
-					this.debugPayloadIntegrity();
-				}
 			}
 
 			// At this point: Use the received payload
@@ -189,10 +209,6 @@ public class tClient implements Runnable {
 			System.out.println("Payload recieved at time " + System.currentTimeMillis());
 
 			this.clearPayload();
-			this.checkConnectionResetKeepAlive();
-		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
 		} catch (ClassNotFoundException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -202,9 +218,9 @@ public class tClient implements Runnable {
 	public void clearPayload() {
 		this.incomingPayload = null;
 	}
-	
+
 	public void checkConnectionResetKeepAlive() {
-		if(this.clientSocketLocal.isConnected()) {
+		if (this.clientSocketLocal.isConnected()) {
 			try {
 				this.clientSocketLocal.setKeepAlive(true);
 			} catch (SocketException e) {
@@ -218,7 +234,7 @@ public class tClient implements Runnable {
 			}
 		}
 	}
-	
+
 	// runs the thread
 	@Override
 	public void run() {
@@ -245,7 +261,8 @@ public class tClient implements Runnable {
 			this.connectLocalTCP();
 		}
 
-		while (this.stopFlag == false) {
+		while (this.stopFlag == false && this.isSocketReady() == true) {
+			// Receive the TCP transmission
 			this.receiveTCP();
 		}
 	}
