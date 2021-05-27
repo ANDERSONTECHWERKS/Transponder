@@ -157,9 +157,7 @@ public class tClient implements Runnable {
 			// This is likely a huge security issue to just *blatantly accept* objects and
 			// cast them
 			// as Payloads.
-			if (objInpStream.readObject() instanceof Payload) {
 				this.incomingPayload = (Payload) objInpStream.readObject();
-			}
 
 			// Debug check and method execution
 			if (this.debugFlag == true) {
@@ -210,7 +208,9 @@ public class tClient implements Runnable {
 			this.connectLocalTCP();
 		}
 
-		this.receiveTCP();
+		while(this.stopFlag == false) {
+			this.receiveTCP();
+		}
 	}
 
 	public void stop() {

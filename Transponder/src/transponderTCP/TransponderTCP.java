@@ -171,7 +171,7 @@ public class TransponderTCP{
 				this.tServerSet.add(server);
 				this.serverThreads.add(serverThread);
 
-				serverThread.run();
+				serverThread.start();
 
 			} catch (IOException e) {
 				e.printStackTrace();
