@@ -75,20 +75,23 @@ public class ControllerMenu {
 			if(this.debugFlag == true) {
 				this.currTransponder.setDebugFlag(true);
 			}
-
+			this.currTransponder.run();
 		}
 
 		// Mode 2 is client-only
 		if (this.mode == 2) {
 			Socket mode2Sock = this.promptClientSocket(this.inputScanner);
 			this.currTransponder = new TransponderTCP(2,mode2Sock, mode2Sock.getRemoteSocketAddress());
+			
+			// Debug prompt and set
+			this.debugFlag = this.promptDebugFlag(inputScanner);
+			if(this.debugFlag == true) {
+				this.currTransponder.setDebugFlag(true);
+			}
+			this.currTransponder.run();
 		}
 		
-		// Debug prompt and set
-		this.debugFlag = this.promptDebugFlag(inputScanner);
-		if(this.debugFlag == true) {
-			this.currTransponder.setDebugFlag(true);
-		}
+
 
 	}
 

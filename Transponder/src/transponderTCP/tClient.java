@@ -152,8 +152,9 @@ public class tClient implements Runnable {
 				System.out.println("- - - - - - - - - -");
 				System.out.println(this.incomingPayload.toString());
 				System.out.println("- - - - - - - - - -");
-
-				this.debugPayloadIntegrity();
+				if(this.debugObject != null) {
+					this.debugPayloadIntegrity();
+				}
 			}
 			
 			// Print the received payload

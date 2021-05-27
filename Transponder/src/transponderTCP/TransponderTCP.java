@@ -153,8 +153,19 @@ public class TransponderTCP{
 			try {
 				Socket listener = this.serverSocket.accept();
 
+				
+				if(this.debugFlag == true) {
+					System.out.println("Client connected from: " + 
+				listener.getInetAddress().toString());
+				}
+
 				tServer server = new tServer(this.serverSocket,listener);
 				server.setOutgoingPayload(serverPayload);
+
+				if(this.debugFlag == true) {
+					System.out.println("Creating tServer instance and starting thread");
+				}
+				
 				Thread serverThread = new Thread(server);
 				
 				serverThread.setName("tServer "+ server.getLocalAddr());
