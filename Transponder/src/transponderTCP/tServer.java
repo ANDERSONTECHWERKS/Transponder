@@ -179,11 +179,6 @@ public class tServer implements Runnable {
 					System.out.println("tServer Transmitting Payload...");
 				}
 			}
-			try {
-				Thread.sleep(1000);
-			} catch (InterruptedException e) {
-				e.printStackTrace();
-			}
 			this.transmitPayload(this.outgoingPayload);
 		}
 	}

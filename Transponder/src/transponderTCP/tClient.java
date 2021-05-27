@@ -157,7 +157,19 @@ public class tClient implements Runnable {
 			// This is likely a huge security issue to just *blatantly accept* objects and
 			// cast them
 			// as Payloads.
-				this.incomingPayload = (Payload) objInpStream.readObject();
+			
+			while(this.stopFlag == false) {
+				try {
+					Object temp = objInpStream.readObject();
+					
+					if(temp instanceof Payload) {
+						this.incomingPayload = (Payload) objInpStream.readObject();
+					}
+				} catch(IOException e){
+					e.printStackTrace();
+				}
+			}
+
 
 			// Debug check and method execution
 			if (this.debugFlag == true) {
@@ -165,6 +177,7 @@ public class tClient implements Runnable {
 				System.out.println("- - - - - - - - - -");
 				System.out.println(this.incomingPayload.toString());
 				System.out.println("- - - - - - - - - -");
+
 				if (this.debugObject != null) {
 					this.debugPayloadIntegrity();
 				}
@@ -186,11 +199,14 @@ public class tClient implements Runnable {
 	}
 
 	// runs the thread
-	//
 	@Override
 	public void run() {
 		// TODO: Rewrite this run method, consider how you want this to behave.
 		// TODO: Consider whether or not we need this run block within a do(while)-loop
+
+		if (this.clientSocketLocal.isClosed()) {
+
+		}
 
 		if (!this.clientSocketLocal.isBound()) {
 			// Output for debugFlag
@@ -208,7 +224,7 @@ public class tClient implements Runnable {
 			this.connectLocalTCP();
 		}
 
-		while(this.stopFlag == false) {
+		while (this.stopFlag == false) {
 			this.receiveTCP();
 		}
 	}
