@@ -104,7 +104,7 @@ public class tServer implements Runnable {
 	// transmitPayload checks for the presence of an outgoingPayload,
 	// then creates an outputStream, as well as an associated object output stream
 	// (objOutputStream) and writes the object to the output
-	public void transmitPayload(Payload payload) {
+	public synchronized void transmitPayload(Payload payload) {
 		
 
 		
@@ -127,6 +127,8 @@ public class tServer implements Runnable {
 				System.out.println("tServer| Writing Object: \n" + this.outgoingPayload.toString());
 			}
 			
+			// debut output (again)
+			// Keep in this block until we know where we want it to go
 			if(this.debugFlag == true) {
 				System.out.println("tServer| ServerSocket and Stream Status:");
 
@@ -162,6 +164,8 @@ public class tServer implements Runnable {
 			}
 			e.printStackTrace();
 		} catch (IOException e) {
+			System.out.println("tServer| IO Exception occurred!");
+			System.out.println("Setting stopFlag to TRUE!");
 			e.printStackTrace();
 		} 
 	}
@@ -169,7 +173,6 @@ public class tServer implements Runnable {
 	// run method for thread execution
 	@Override
 	public void run() {
-		while (this.stopFlag == false) {
 			// Debug flag check
 			if (this.debugFlag == true) {
 				if (this.debugObject != null) {
@@ -180,7 +183,6 @@ public class tServer implements Runnable {
 			}
 			
 			this.transmitPayload(this.outgoingPayload);
-		}
 	}
 
 

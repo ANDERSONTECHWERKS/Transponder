@@ -119,7 +119,7 @@ public class tClient implements Runnable {
 
 	}
 
-	public boolean isSocketReady() {
+	public boolean isClientReady() {
 
 		// Output for debugFlag
 		if (this.debugFlag == true) {
@@ -172,8 +172,7 @@ public class tClient implements Runnable {
 
 	// receiveTCP attempts to obtain an inputStream from clientSocketLocal and
 	// assign it to clientStream
-	public void receiveTCP() {
-		try {
+	public synchronized void receiveTCP() {
 
 			// TODO: Create type-check for this.incomingPayload
 			// This is likely a huge security issue to just *blatantly accept* objects and
@@ -182,7 +181,7 @@ public class tClient implements Runnable {
 
 			try {
 				Object temp = objInpStream.readObject();
-
+				
 				if (temp instanceof Payload) {
 					this.incomingPayload = (Payload) temp;
 
@@ -200,6 +199,8 @@ public class tClient implements Runnable {
 				}
 			} catch (IOException e) {
 				e.printStackTrace();
+			} catch (ClassNotFoundException e) {
+				e.printStackTrace();
 			}
 
 			// At this point: Use the received payload
@@ -209,10 +210,7 @@ public class tClient implements Runnable {
 			System.out.println("Payload recieved at time " + System.currentTimeMillis());
 
 			this.clearPayload();
-		} catch (ClassNotFoundException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
+
 	}
 
 	public void clearPayload() {
@@ -260,8 +258,7 @@ public class tClient implements Runnable {
 			}
 			this.connectLocalTCP();
 		}
-
-		while (this.stopFlag == false && this.isSocketReady() == true) {
+		if(this.isClientReady() == true) {
 			// Receive the TCP transmission
 			this.receiveTCP();
 		}
