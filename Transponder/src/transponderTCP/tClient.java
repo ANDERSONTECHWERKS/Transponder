@@ -5,6 +5,7 @@ import java.io.InputStream;
 import java.io.ObjectInputStream;
 import java.net.Socket;
 import java.net.SocketAddress;
+import java.net.SocketException;
 
 // Transponder-Client 
 // clientSocketLocal: Local socket
@@ -186,6 +187,8 @@ public class tClient implements Runnable {
 
 			System.out.println("Payload recieved at time " + System.currentTimeMillis());
 
+			this.clearPayload();
+			this.checkConnectionResetKeepAlive();
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -195,6 +198,26 @@ public class tClient implements Runnable {
 		}
 	}
 
+	public void clearPayload() {
+		this.incomingPayload = null;
+	}
+	
+	public void checkConnectionResetKeepAlive() {
+		if(this.clientSocketLocal.isConnected()) {
+			try {
+				this.clientSocketLocal.setKeepAlive(true);
+			} catch (SocketException e) {
+				e.printStackTrace();
+			}
+		} else {
+			try {
+				this.clientSocketLocal.setKeepAlive(false);
+			} catch (SocketException e) {
+				e.printStackTrace();
+			}
+		}
+	}
+	
 	// runs the thread
 	@Override
 	public void run() {

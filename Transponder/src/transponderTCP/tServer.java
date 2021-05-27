@@ -149,9 +149,8 @@ public class tServer implements Runnable {
 				}
 			}
 
-			if(this.remoteSocketTCP.isConnected() == true){
+			if(this.remoteSocketTCP.isConnected() == true && !this.remoteSocketTCP.isClosed()){
 				this.objOutputStream.writeObject(payload);
-				this.objOutputStream.flush();
 			}
 			
 
