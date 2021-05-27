@@ -164,6 +164,7 @@ public class TransponderTCP{
 
 				if(this.debugFlag == true) {
 					System.out.println("Creating tServer instance and starting thread");
+					server.setDebugFlag(true);
 				}
 				
 				Thread serverThread = new Thread(server);

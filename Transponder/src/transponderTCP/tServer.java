@@ -11,6 +11,7 @@ import java.net.SocketAddress;
 // (If set), or keeps the channel open for on-demand transmissions from the 
 // server-controller (Yet to be written)
 // TODO: Write server controller
+import java.net.SocketException;
 
 public class tServer implements Runnable {
 
@@ -108,23 +109,32 @@ public class tServer implements Runnable {
 			throw new IllegalArgumentException("tServer payload not set!");
 		}
 		try {
-			this.outputStream = this.remoteSocketTCP.getOutputStream();
-			this.objOutputStream = new ObjectOutputStream(this.outputStream);
+			if(this.outputStream == null) {
+				this.outputStream = this.remoteSocketTCP.getOutputStream();
+			}
+			if(this.objOutputStream == null) {
+				this.objOutputStream = new ObjectOutputStream(this.outputStream);
+			}
 			// debug output for when debugFlag set to TRUE
 			if (this.debugFlag == true) {
 				System.out.println("tServer objOutputStream created. Writing payload to objOutputStream.");
 			}
 			this.objOutputStream.writeObject(payload);
+		} catch (SocketException e) {
+			if (this.debugFlag == true) {
+				System.out.println("tServer| Socket Exception occurred!");
+			}
+			e.printStackTrace();
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
-		} 
+		}
 	}
 
 	// run method for thread execution
 	@Override
 	public void run() {
-		while(this.stopFlag == false) {
+		while (this.stopFlag == false) {
 			// Debug flag check
 			if (this.debugFlag == true) {
 				if (this.debugObject != null) {

@@ -163,11 +163,11 @@ public class tClient implements Runnable {
 				}
 			}
 			
-			// Print the received payload
+			// At this point: Use the received payload
 			// TODO: Decide and develop what to do with the received payload from here
 			// Intended functionality is NOT to simply receive a payload and toString() it.
-
-			System.out.println(this.incomingPayload);
+			
+			System.out.println("Payload recieved at time " + System.currentTimeMillis());
 
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
