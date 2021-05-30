@@ -135,13 +135,15 @@ public class tServer implements Runnable {
 				}
 			}
 
+			this.setServerOpts(null);
+			
+			// write the object, allow the address to be reused, and close the streams
 			if(this.remoteSocketTCP.isConnected() == true && !this.remoteSocketTCP.isClosed()){
 				this.objOutputStream.writeObject(payload);
 
-				this.objOutputStream.close();
-				this.outputStream.close();
-				this.remoteSocketTCP.close();
 			}
+			
+			this.cleanupServerConnection();
 			
 
 		} catch (SocketException e) {
@@ -157,8 +159,33 @@ public class tServer implements Runnable {
 			e.printStackTrace();
 		} 
 	}
-	
-	
+	public void setServerOpts(String args[]) {
+		// For the moment, args[] does nothing.
+		// We will use this block to set options as we
+		// develop and troubleshoot
+		
+		
+		try {
+			this.ServerSocketTCP.setReuseAddress(true);
+		} catch (SocketException e) {
+			System.out.println("tServer| SocketException occured! Unable to setServerOpts()!");
+			e.printStackTrace();
+		}
+
+	}
+
+	public void cleanupServerConnection() {
+		
+		try {
+			this.objOutputStream.close();
+			this.outputStream.close();
+			this.remoteSocketTCP.close();
+		} catch (IOException e) {
+			System.out.println("tServer| cleanupServerConnection failed!");
+			e.printStackTrace();
+		}
+
+	}
 
 	// run method for thread execution
 	@Override
