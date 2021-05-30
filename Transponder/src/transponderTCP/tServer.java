@@ -183,6 +183,8 @@ public class tServer implements Runnable {
 			this.objOutputStream.close();
 			this.outputStream.close();
 			this.remoteSocketTCP.close();
+			this.remoteSocketTCP = null;
+
 		} catch (IOException e) {
 			System.out.println("tServer| cleanupServerConnection failed!");
 			e.printStackTrace();
