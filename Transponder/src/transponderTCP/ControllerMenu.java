@@ -42,6 +42,10 @@ public class ControllerMenu {
 			this.transponderThread = transponderThread;
 			transponderThread.start();
 
+			// Set this object to be the static mainMenu
+			mainMenu = this;
+			mainMenu.controllerCMD(mainMenu.getScanner());
+
 		}
 
 		// Mode 2 is client-only
@@ -59,6 +63,10 @@ public class ControllerMenu {
 			Thread transponderThread = new Thread(this.currTransponder);
 			this.transponderThread = transponderThread;
 			transponderThread.start();
+			
+			// Set this object to be the static mainMenu
+			mainMenu = this;
+			mainMenu.controllerCMD(mainMenu.getScanner());
 
 		}
 	}

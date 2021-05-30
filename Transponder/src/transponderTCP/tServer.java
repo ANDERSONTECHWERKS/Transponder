@@ -12,6 +12,7 @@ import java.net.SocketAddress;
 // server-controller (Yet to be written)
 // TODO: Write server controller
 import java.net.SocketException;
+import java.util.concurrent.TimeUnit;
 
 public class tServer implements Runnable {
 
@@ -39,42 +40,6 @@ public class tServer implements Runnable {
 		this.localAddrTCP = this.ServerSocketTCP.getLocalSocketAddress();
 		this.remoteSocketTCP = clientSocket;
 	}
-
-	// Deprecated: We listen() in the TransponderTCP class now.
-	// listen() checks for pre-binding and checks/binds the
-	// local TCP address (localAddrTCP), assuming localAddrTCP is set.
-	// listen() then accepts TCP connections on the assigned port
-	// and assigns the connection to a socket (remoteSocketTCP)
-//	public void listen() {
-//		try {
-//			if (!this.ServerSocketTCP.isBound()) {
-//
-//				// Debug output for when debugFlag is set to TRUE
-//				if (this.debugFlag == true) {
-//					System.out.println("tServer not bound! Binding to:\n " + localAddrTCP.toString());
-//				}
-//				this.ServerSocketTCP.bind(localAddrTCP);
-//			}
-//			this.remoteSocketTCP = ServerSocketTCP.accept();
-//
-//			// Debug output for when debugFlag is set to TRUE
-//			if (this.debugFlag == true) {
-//				System.out.println("tServer accepted connection from:\n"
-//						+ this.remoteSocketTCP.getRemoteSocketAddress().toString());
-//				System.out.println("At local address: \n" + this.remoteSocketTCP.getLocalSocketAddress().toString());
-//				System.out.println("tServer transmitting the following payload:\n");
-//				System.out.println("- - - - - - - - - -");
-//				System.out.println(this.outgoingPayload.toString());
-//				System.out.println("- - - - - - - - - -");
-//			}
-//
-//			this.transmitPayload(outgoingPayload);
-//		} catch (IOException e) {
-//			// TODO Auto-generated catch block
-//			e.printStackTrace();
-//		}
-//
-//	}
 
 	// isPayloadPresent returns a boolean TRUE if the outgoingPayload
 	// field is populated with a Payload object, false if not.
@@ -104,7 +69,7 @@ public class tServer implements Runnable {
 	// transmitPayload checks for the presence of an outgoingPayload,
 	// then creates an outputStream, as well as an associated object output stream
 	// (objOutputStream) and writes the object to the output
-	public synchronized void transmitPayload(Payload payload) {
+	public void transmitPayload(Payload payload) {
 		
 
 		
@@ -173,6 +138,8 @@ public class tServer implements Runnable {
 			e.printStackTrace();
 		} 
 	}
+	
+	
 
 	// run method for thread execution
 	@Override
@@ -188,18 +155,25 @@ public class tServer implements Runnable {
 			
 			
 			try {
-				while(this.stopFlag == false) {
 					this.remoteSocketTCP = this.ServerSocketTCP.accept();
-				}
+
+					if (this.debugFlag == true) {
+						System.out.println("Client connected from: " + this.remoteSocketTCP.getRemoteSocketAddress().toString());
+					}
+					
+					TimeUnit.SECONDS.sleep(5);
+
+					this.transmitPayload(this.outgoingPayload);
+
 			} catch (IOException e) {
+				e.printStackTrace();
+			} catch (InterruptedException e) {
 				e.printStackTrace();
 			}
 
-			if (this.debugFlag == true) {
-				System.out.println("Client connected from: " + this.remoteSocketTCP.getRemoteSocketAddress().toString());
-			}
 
-			this.transmitPayload(this.outgoingPayload);
+			
+
 	}
 
 
@@ -252,17 +226,17 @@ public class tServer implements Runnable {
 
 	public String getStatus() {
 		String status = "";
-		status += "Connection Status: \n";
+		status += "---Connection Status--- \n";
 
-		status += "Local Address settings: \n";
+		status += "---Local Address settings--- \n";
 		if (this.localAddrTCP == null) {
 			status += "Local Address set to null!\n";
 		} else {
 			status += "Local Address set to:\n";
-			status += "TCP: " + this.localAddrTCP.toString();
+			status += "TCP: " + this.localAddrTCP.toString() + "\n";
 		}
 
-		status += "Remote Address settings: \n";
+		status += "---Remote Address settings--- \n";
 		if (this.remoteSocketTCP == null) {
 			status += "No remote socket set! \n";
 		} else {
@@ -270,7 +244,7 @@ public class tServer implements Runnable {
 			status += "TCP: " + this.remoteSocketTCP.getRemoteSocketAddress().toString();
 		}
 
-		status += "Payload status: \n";
+		status += "---Payload status--- \n";
 		if (this.isPayloadPresent() == false) {
 			status += "Payload is not present!\n";
 		} else {

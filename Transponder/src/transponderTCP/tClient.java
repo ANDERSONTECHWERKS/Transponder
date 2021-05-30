@@ -130,6 +130,8 @@ public class tClient implements Runnable {
 		// If it is closed, we will recreate and reassign the Socket using that very ugly constructor below
 
 		if (this.clientSocketLocal.isClosed()) {
+			
+			// Check if the socket exists, and is closed
 			if (this.debugFlag == true) {
 				System.out.println("clientSocketLocal not ready! Socket is closed!");
 			}
@@ -206,11 +208,6 @@ public class tClient implements Runnable {
 				System.out.println("tClient| objInpStream instantiated successfully!");
 			}
 		}
-		
-
-
-
-		
 		return true;
 	}
 
