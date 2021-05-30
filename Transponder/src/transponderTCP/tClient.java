@@ -28,6 +28,7 @@ public class tClient implements Runnable {
 	private boolean stopFlag = false;
 	private boolean debugFlag = false;
 	private debugObj debugObject = null;
+	private TransponderTCP parentTransponder = null;
 
 	// Create tClient from a localSocket instance.
 	// We are expecting that this socket is completely constructed (Local and remote addresses assigned)
@@ -311,11 +312,9 @@ public class tClient implements Runnable {
 	@Override
 	public void run() {
 		// TODO: Consider whether or not we need this run block within a do(while)-loop
-		while(this.stopFlag == false) {
 			if(this.isClientReady() == true) {
 				// Receive the TCP transmission
 				this.receiveTCP();
-			}
 		}
 	}
 
@@ -380,7 +379,7 @@ public class tClient implements Runnable {
 			status += "No remote socket set! \n";
 		} else {
 			status += "Remote Address set to:\n";
-			status += "TCP: " + this.socketRemoteAddr.toString();
+			status += "TCP: " + this.socketRemoteAddr.toString() +"\n";
 
 		}
 

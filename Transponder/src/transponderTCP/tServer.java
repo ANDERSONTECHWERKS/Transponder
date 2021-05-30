@@ -25,6 +25,7 @@ public class tServer implements Runnable {
 	private debugObj debugObject = null;
 	private boolean stopFlag = false;
 	private boolean debugFlag = false;
+	private TransponderTCP parentTransponder = null;
 
 	// Creates a tServer instance with a serverSocket
 	// and a SocketAddress. Both are assumed and intended to be used
