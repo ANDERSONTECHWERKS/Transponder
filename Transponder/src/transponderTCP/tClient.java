@@ -138,14 +138,24 @@ public class tClient implements Runnable {
 			
 			// Ugly constructor we are using to recreate the socket
 			try {
+				System.out.println("tClient| clientSocketLocal is closed! Attempting to recreate socket...");
+				System.out.println("tClient| Using the following to recreate socket:");
+				System.out.println("tClient| Server address:" + this.clientSocketLocal.getRemoteSocketAddress());
+				System.out.println("tClient| Server port:" + this.clientSocketLocal.getPort());
+				System.out.println("tClient| Client address:" + this.clientSocketLocal.getLocalAddress());
+				System.out.println("tClient| Client port:" + this.clientSocketLocal.getLocalPort());
 				
-				this.clientSocketLocal = new Socket(this.clientSocketLocal.getInetAddress().toString(),this.clientSocketLocal.getLocalPort()
+				this.clientSocketLocal = new Socket(this.clientSocketLocal.getInetAddress(),this.clientSocketLocal.getLocalPort()
 						, this.clientSocketLocal.getLocalAddress(),this.clientSocketLocal.getLocalPort());
 				
 			} catch (UnknownHostException e) {
+				System.out.println("tClient| Unknown host exception! Failed to create new socket!");
 				e.printStackTrace();
+				return false;
 			} catch (IOException e) {
+				System.out.println("tClient| IOException! Failed to create new socket!");
 				e.printStackTrace();
+				return false;
 			}
 		}
 		
@@ -250,6 +260,7 @@ public class tClient implements Runnable {
 			// Intended functionality is NOT to simply receive a payload and toString() it.
 
 			System.out.println("Payload recieved at time " + System.currentTimeMillis());
+			System.out.println(this.incomingPayload.toString());
 
 			this.cleanupClientConnection();
 
