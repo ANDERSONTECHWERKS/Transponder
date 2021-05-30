@@ -32,6 +32,7 @@ public class tClient implements Runnable {
 	// Create tClient from a localSocket instance.
 	// We are expecting that this socket is completely constructed (Local and remote addresses assigned)
 	// If this isn't happening: Make it happen at the ControllerMenu / TransponderTCP level!
+
 	tClient(Socket localSocket) {
 		// Assign socket to field
 		this.clientSocketLocal = localSocket;
@@ -212,12 +213,24 @@ public class tClient implements Runnable {
 			}
 		}
 
-		// Output for debugFlag
+		// Output for debugFlag, confirms that we have an instance of ObjectInputStream
+		// successfully instantiated
 		if (this.debugFlag == true) {
 			if (this.objInpStream instanceof ObjectInputStream) {
 				System.out.println("tClient| objInpStream instantiated successfully!");
 			}
 		}
+		
+		// Ensures that we don't read on an EOF marker
+		// Blocks until a byte is readable
+		try {
+			if(this.objInpStream.read() == -1) {
+				return false;
+			}
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+		
 		return true;
 	}
 
@@ -349,22 +362,26 @@ public class tClient implements Runnable {
 
 	public String getStatus() {
 		String status = "";
-		status += "Connection Status: \n";
+		status += "tClient| Connection Status: \n";
 
-		status += "Local Address settings: \n";
+		status += "---Local Address settings--- \n";
 		if (this.socketLocalAddr == null) {
 			status += "Local Address set to null!\n";
 		} else {
 			status += "Local Address set to:\n";
 			status += "TCP: " + this.socketLocalAddr.toString();
+			status += "Is local socket bound? : " + this.clientSocketLocal.isBound() + "\n";
+			status += "Is local socket closed? : " + this.clientSocketLocal.isClosed() + "\n";
+			status += "Is local socket connected? : " + this.clientSocketLocal.isConnected() + "\n";
 		}
 
-		status += "Remote Address settings: \n";
+		status += "---Remote Address settings--- \n";
 		if (this.socketRemoteAddr.toString() == null) {
 			status += "No remote socket set! \n";
 		} else {
 			status += "Remote Address set to:\n";
 			status += "TCP: " + this.socketRemoteAddr.toString();
+
 		}
 
 		status += "Payload status: \n";

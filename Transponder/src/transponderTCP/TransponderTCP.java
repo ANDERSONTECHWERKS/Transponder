@@ -20,7 +20,6 @@ public class TransponderTCP implements Runnable{
 	private ServerSocket serverSocket = null;
 	private Payload serverPayload = null;
 	private debugObj debugObj = null;
-	private boolean stopFlag = false;
 	private boolean debugFlag = false;
 
 	public TransponderTCP(int mode) {
@@ -58,7 +57,6 @@ public class TransponderTCP implements Runnable{
 	}
 
 	public void stop() {
-		this.stopFlag = true;
 		this.mode = 0;
 
 		for (tClient currClient : this.tClientSet) {

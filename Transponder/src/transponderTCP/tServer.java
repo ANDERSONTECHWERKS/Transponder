@@ -113,6 +113,8 @@ public class tServer implements Runnable {
 			
 			// debug output (again)
 			// Keep in this block until we know where we want it to go
+			// TL;DR: If the debugFlag is true, we will output any/all relevant 
+			// socket and stream information before we transmit
 			if(this.debugFlag == true) {
 				System.out.println("tServer| ServerSocket and Stream Status:");
 
@@ -149,7 +151,7 @@ public class tServer implements Runnable {
 		} catch (SocketException e) {
 			if (this.debugFlag == true) {
 				System.out.println("tServer| Socket Exception occurred!");
-				System.out.println("Setting stopFlag to TRUE!");
+//				System.out.println("Setting stopFlag to TRUE!");
 				this.stopFlag = true;
 			}
 			e.printStackTrace();
@@ -284,7 +286,7 @@ public class tServer implements Runnable {
 
 	public String getStatus() {
 		String status = "";
-		status += "---Connection Status--- \n";
+		status += "tServer| Connection Status: \n";
 
 		status += "---Local Address settings--- \n";
 		if (this.localAddrTCP == null) {
@@ -292,6 +294,8 @@ public class tServer implements Runnable {
 		} else {
 			status += "Local Address set to:\n";
 			status += "TCP: " + this.localAddrTCP.toString() + "\n";
+			status += "Is socket bound? : " + this.ServerSocketTCP.isBound() + "\n";
+			status += "Is socket closed? : " + this.ServerSocketTCP.isClosed() + "\n";
 		}
 
 		status += "---Remote Address settings--- \n";
@@ -300,6 +304,9 @@ public class tServer implements Runnable {
 		} else {
 			status += "Remote Address set to:\n";
 			status += "TCP: " + this.remoteSocketTCP.getRemoteSocketAddress().toString();
+			status += "Is remote socket bound? : " + this.remoteSocketTCP.isBound() + "\n";
+			status += "Is remote socket closed? : " + this.remoteSocketTCP.isClosed() + "\n";
+			status += "Is remote socket connected? : " + this.remoteSocketTCP.isConnected() + "\n";
 		}
 
 		status += "---Payload status--- \n";
