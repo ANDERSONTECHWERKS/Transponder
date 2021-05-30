@@ -155,16 +155,17 @@ public class tServer implements Runnable {
 			
 			
 			try {
+				while(stopFlag == false) {
 					this.remoteSocketTCP = this.ServerSocketTCP.accept();
-
 					if (this.debugFlag == true) {
 						System.out.println("Client connected from: " + this.remoteSocketTCP.getRemoteSocketAddress().toString());
 					}
 					
+					// We're just using this to see if our issues are timing, or something else
 					TimeUnit.SECONDS.sleep(5);
 
 					this.transmitPayload(this.outgoingPayload);
-
+				}
 			} catch (IOException e) {
 				e.printStackTrace();
 			} catch (InterruptedException e) {

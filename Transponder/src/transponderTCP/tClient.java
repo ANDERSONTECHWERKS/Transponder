@@ -287,10 +287,11 @@ public class tClient implements Runnable {
 	@Override
 	public void run() {
 		// TODO: Consider whether or not we need this run block within a do(while)-loop
-
-		if(this.isClientReady() == true) {
-			// Receive the TCP transmission
-			this.receiveTCP();
+		while(this.stopFlag == false) {
+			if(this.isClientReady() == true) {
+				// Receive the TCP transmission
+				this.receiveTCP();
+			}
 		}
 	}
 
