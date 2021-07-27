@@ -31,6 +31,25 @@ public class TransponderTCP implements Runnable{
 	public TransponderTCP(int mode, ServerSocket localServerSocket, SocketAddress localSockAddr) {
 		this.mode = mode;
 		this.serverSocket = localServerSocket;
+		
+		// Check if the localServerSocket has connection details,
+		// but is not bound.
+		// This check is relevant when localServerSocket is passed in while unconnected,
+		// This check will assign the localSockAddr details to the localServerSocket
+		
+		if(this.serverSocket.isBound() == false) {
+			if(localSockAddr != null) {
+				try {
+					localServerSocket.bind(localSockAddr);
+				} catch (IOException e) {
+					// TODO Auto-generated catch block
+					// Errors thrown here will likely be bad localSockAddr issues.
+					// I think...
+					e.printStackTrace();
+				}
+			}
+		}
+		
 		this.tServerSockAddr = localSockAddr;
 	}
 

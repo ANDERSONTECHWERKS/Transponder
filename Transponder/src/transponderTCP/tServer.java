@@ -122,22 +122,23 @@ public class tServer implements Runnable {
 				if(this.objOutputStream == null) {
 					System.out.println("objOutputStream is null!");
 				} else {
-					System.out.println(this.objOutputStream.toString());
+					System.out.println("ObjOutputStream ID: " + this.objOutputStream.toString());
 				}
 
 				if(this.outputStream == null) {
 					System.out.println("outputStream is null!");
 				} else {
-					System.out.println(this.outputStream.toString());					
+					System.out.println("outputStream ID:" + this.outputStream.toString());					
 				}
 				
 				if(this.remoteSocketTCP == null) {
 					System.out.println("remoteSocketTCP is null!");
 				} else {
-					System.out.println(this.remoteSocketTCP.toString());					
+					System.out.println("remoteSocketTCP ID:" + this.remoteSocketTCP.toString());					
 				}
 			}
 
+			//setServerOpts is where we will pass misc. options in the future!
 			this.setServerOpts(null);
 			
 			// write the object, allow the address to be reused, and close the streams
@@ -217,22 +218,11 @@ public class tServer implements Runnable {
 			this.createStreams();
 			
 			
-			// Assuming we now have a socket connection and relevant streams
-			// 
-			try {
-				while(stopFlag == false) {
-					if (this.debugFlag == true) {
-						System.out.println("Client connected from: " + this.remoteSocketTCP.getRemoteSocketAddress().toString());
-					}
-					
-					// We're just using this to see if our issues are timing, or something else
-					TimeUnit.SECONDS.sleep(5);
-
-					this.transmitPayload(this.outgoingPayload);
+				if (this.debugFlag == true) {
+					System.out.println("Client connected from: " + this.remoteSocketTCP.getRemoteSocketAddress().toString());
 				}
-			} catch (InterruptedException e) {
-				e.printStackTrace();
-			}
+
+				this.transmitPayload(this.outgoingPayload);
 
 
 			

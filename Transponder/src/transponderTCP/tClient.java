@@ -19,15 +19,19 @@ import java.net.UnknownHostException;
 // incomingPayload: Recieving object for Payload-class payload, recieved via objInpStream
 // stopFlag: boolean used to start / stop thread
 public class tClient implements Runnable {
+	
 	private Socket clientSocketLocal = null;
 	private SocketAddress socketLocalAddr = null;
 	private SocketAddress socketRemoteAddr = null;
 	private BufferedInputStream clientStream = null;
 	private ObjectInputStream objInpStream = null;
 	private Payload incomingPayload = null;
+	
 	private boolean stopFlag = false;
 	private boolean debugFlag = false;
+	
 	private debugObj debugObject = null;
+	
 	private TransponderTCP parentTransponder = null;
 
 	// Create tClient from a localSocket instance.
@@ -191,18 +195,21 @@ public class tClient implements Runnable {
 		if (this.clientStream == null) {
 			try {
 				clientStream = new BufferedInputStream(this.clientSocketLocal.getInputStream());
+				
+				// Output for debugFlag
+				if (this.debugFlag == true) {
+					if (this.clientStream instanceof InputStream) {
+						System.out.println("tClient| clientStream instantiated successfully!");
+					}
+				}
+				
 			} catch (IOException e) {
 				e.printStackTrace();
 				return false;
 			}
 		}
 
-		// Output for debugFlag
-		if (this.debugFlag == true) {
-			if (this.clientStream instanceof InputStream) {
-				System.out.println("tClient| clientStream instantiated successfully!");
-			}
-		}
+
 
 		// Check if objInpStream exists yet. If not - create it.
 		if (this.objInpStream == null) {
@@ -315,6 +322,9 @@ public class tClient implements Runnable {
 			if(this.isClientReady() == true) {
 				// Receive the TCP transmission
 				this.receiveTCP();
+				System.out.println("tClient| Received payload: \n" + this.getPayload().toString());
+		} else {
+			System.out.println("tClient| Client not ready!");
 		}
 	}
 

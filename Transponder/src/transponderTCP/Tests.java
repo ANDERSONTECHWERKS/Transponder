@@ -107,7 +107,7 @@ public class Tests extends TestCase{
 	
 	@Test
 	public void testServer() {
-		String createMode1Input = new String("1" + System.lineSeparator() + "192.168.88.40"
+		String createMode1Input = new String("1" + System.lineSeparator() + "127.0.0.1"
 				+ System.lineSeparator() + "6969" + System.lineSeparator()  
 				+ System.lineSeparator() + "1" + System.lineSeparator() + "Test"
 				+ System.lineSeparator() + "69" + System.lineSeparator() +
@@ -121,9 +121,9 @@ public class Tests extends TestCase{
 	
 	@Test
 	public void testClient() {
-		String createMode2Input = new String("2" + System.lineSeparator() + "192.168.88.27"
+		String createMode2Input = new String("2" + System.lineSeparator() + "127.0.0.1"
 				+ System.lineSeparator() + "7000" + System.lineSeparator()  
-				+ System.lineSeparator() + "192.168.88.40" + System.lineSeparator() + "6969"
+				+ System.lineSeparator() + "127.0.0.1" + System.lineSeparator() + "6969"
 				+ System.lineSeparator() + "1");
 		InputStream input = new ByteArrayInputStream(createMode2Input.getBytes());
 		Scanner testScanner = new Scanner(input);
