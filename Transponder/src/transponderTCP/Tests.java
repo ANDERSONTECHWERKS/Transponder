@@ -113,13 +113,7 @@ public class Tests extends TestCase{
 		InetSocketAddress serverAddr = null;
 		ServerSocket serverSock = null;
 
-		//Create InetSocketAddress object via serverIP bytes and hand-input port number
-		try {
-			serverAddr = new InetSocketAddress(InetAddress.getLocalHost(),6969);
-		} catch (UnknownHostException e1) {
-			// TODO Auto-generated catch block
-			e1.printStackTrace();
-		}
+		serverAddr = new InetSocketAddress(InetAddress.getLoopbackAddress(),6969);
 		
 		// Try instantiating serverSock
 		try {

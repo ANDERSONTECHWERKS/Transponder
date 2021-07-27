@@ -1,18 +1,26 @@
 package transponderTCP;
 
+import java.io.BufferedInputStream;
+import java.io.BufferedOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.io.OutputStream;
 import java.net.InetAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.net.SocketAddress;
-// Transponder-Server opens a server socket and transmits either the default payload 
-// (If set), or keeps the channel open for on-demand transmissions from the 
-// server-controller (Yet to be written)
-// TODO: Write server controller
 import java.net.SocketException;
 import java.util.concurrent.TimeUnit;
+
+
+//Transponder-Server opens a server socket and transmits either the default payload 
+//(If set), or keeps the channel open for on-demand transmissions from the 
+//server-controller (TransponderTCP)
+
+//TODO: Write IOstreams for inputStreams to accept clientSignOn, and consider 
+// how the handshake for clientSignOn/clientSignOff should operate.
 
 public class tServer implements Runnable {
 
@@ -20,25 +28,41 @@ public class tServer implements Runnable {
 	private SocketAddress localAddrTCP = null;
 	private Socket remoteSocketTCP = null;
 	private OutputStream outputStream = null;
+	private InputStream inputStream = null;
+	private BufferedInputStream serverBuffStream = null;
+	private BufferedOutputStream serverBuffOutStream = null;
 	private ObjectOutputStream objOutputStream = null;
+	private ObjectInputStream objInputStream = null;
 	private Payload outgoingPayload = null;
 	private debugObj debugObject = null;
 	private boolean stopFlag = false;
 	private boolean debugFlag = false;
 	private TransponderTCP parentTransponder = null;
 
+	// tServer instance without parent reference. 
+	// ONLY USE FOR TROUBLESHOOTING!
+	public tServer(ServerSocket serverSocket, SocketAddress localAddr) {
+		this.localAddrTCP = localAddr;
+		this.ServerSocketTCP = serverSocket;
+	}
+	
 	// Creates a tServer instance with a serverSocket
 	// and a SocketAddress. Both are assumed and intended to be used
 	// as a local ServerSocket with a local address.
+	// Includes reference to parent transponderTCP object for callbacks!
 
-	public tServer(ServerSocket serverSocket, SocketAddress localAddr) {
+	public tServer(ServerSocket serverSocket, SocketAddress localAddr, TransponderTCP parent) {
+		this.parentTransponder = parent;
 		this.localAddrTCP = localAddr;
 		this.ServerSocketTCP = serverSocket;
 	}
 
 	// Creates a tServer instance with the given serverSocket and clientSockets already
 	// instantiated
-	public tServer(ServerSocket serverSocket, Socket clientSocket) {
+	// Includes reference to parent transponderTCP object for callbacks!
+
+	public tServer(ServerSocket serverSocket, Socket clientSocket, TransponderTCP parent) {
+		this.parentTransponder = parent;
 		this.ServerSocketTCP = serverSocket;
 		this.localAddrTCP = this.ServerSocketTCP.getLocalSocketAddress();
 		this.remoteSocketTCP = clientSocket;
@@ -69,7 +93,31 @@ public class tServer implements Runnable {
 		this.outgoingPayload = payload;
 	}
 	
-	public void createStreams() {
+	public void createIOStreams() {
+		
+		//TODO: the order of the inputStream / outputStream creation matters between client and server!
+		// Idea: Establish connection, make client send a 'clientSignOn' object,
+		// then the server opens the output stream and transmits the payload until a
+		// clientSignOff has been received.
+
+		//Create inputStreams
+		if(this.inputStream == null && this.objInputStream == null) {
+			
+			try {
+				
+				this.inputStream = this.remoteSocketTCP.getInputStream();
+				this.objInputStream = new ObjectInputStream(inputStream);
+				
+			} catch (IOException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+		}
+
+		if (this.debugFlag == true) {
+			System.out.println("createStreams completed!");
+		}
+
 		
 		// If we currently have no outputStream, create one by calling getOutputStream() 
 		// on the remote socket
@@ -108,9 +156,6 @@ public class tServer implements Runnable {
 			}
 		}
 		
-		if (this.debugFlag == true) {
-			System.out.println("createStreams completed!");
-		}
 	}
 
 	// transmitPayload checks for the presence of an outgoingPayload,
@@ -119,7 +164,7 @@ public class tServer implements Runnable {
 	public void transmitPayload(Payload payload) {
 		
 		if (this.outgoingPayload == null) {
-			throw new IllegalArgumentException("tServer payload not set!");
+			throw new IllegalArgumentException("tServer| Payload not set!");
 		}
 
 		try {
@@ -131,24 +176,24 @@ public class tServer implements Runnable {
 				System.out.println("tServer| ServerSocket and Stream Status:");
 
 				if(this.objOutputStream == null) {
-					System.out.println("objOutputStream is null!");
+					System.out.println("tServer| objOutputStream is null!");
 					
 				} else {
-					System.out.println("ObjOutputStream ID: " + this.objOutputStream.toString());
+					System.out.println("tServer| ObjOutputStream ID: " + this.objOutputStream.toString());
 				}
 
 				if(this.outputStream == null) {
-					System.out.println("outputStream is null!");
+					System.out.println("tServer| outputStream is null!");
 					
 				} else {
-					System.out.println("outputStream ID:" + this.outputStream.toString());					
+					System.out.println("tServer| outputStream ID:" + this.outputStream.toString());					
 				}
 				
 				if(this.remoteSocketTCP == null) {
-					System.out.println("remoteSocketTCP is null!");
+					System.out.println("tServer| remoteSocketTCP is null!");
 					
 				} else {
-					System.out.println("remoteSocketTCP ID:" + this.remoteSocketTCP.toString());					
+					System.out.println("tServer| remoteSocketTCP ID:" + this.remoteSocketTCP.toString());					
 				}
 			}
 
@@ -161,14 +206,22 @@ public class tServer implements Runnable {
 				//TODO: EXPERIMENTAL: Gonna put this in a loop
 				while(this.stopFlag == false) {
 					
+					try {
+						Thread.sleep(300);
+					} catch (InterruptedException e) {
+						// TODO Auto-generated catch block
+						e.printStackTrace();
+					}
+
+					// debug output for when debugFlag set to TRUE
+					if (this.debugFlag == true) {
+						System.out.println("tServer| Writing Object: \n" + this.outgoingPayload.toString());
+					}
+					
 					this.objOutputStream.writeObject(payload);
 				}
 				
-				// debug output for when debugFlag set to TRUE
-				if (this.debugFlag == true) {
-					System.out.println("tServer| objOutputStream created. Writing payload to objOutputStream.");
-					System.out.println("tServer| Writing Object: \n" + this.outgoingPayload.toString());
-				}
+
 			}			
 
 		} catch (SocketException e) {
@@ -191,7 +244,9 @@ public class tServer implements Runnable {
 		
 		
 		try {
+			this.remoteSocketTCP.setSoLinger(true, 0);
 			this.ServerSocketTCP.setReuseAddress(true);
+			
 		} catch (SocketException e) {
 			System.out.println("tServer| SocketException occured! Unable to setServerOpts()!");
 			e.printStackTrace();
@@ -200,6 +255,14 @@ public class tServer implements Runnable {
 	}
 
 	public void cleanupServerConnection() {
+		
+		try {
+			this.remoteSocketTCP.shutdownOutput();
+
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
 		
 		try {
 			this.objOutputStream.close();
@@ -235,18 +298,21 @@ public class tServer implements Runnable {
 					System.out.println("Client connected from: " + this.remoteSocketTCP.getRemoteSocketAddress().toString());
 				}
 				
+				
 			} catch (IOException e1) {
 				e1.printStackTrace();
 			}
 
 			
 			// Create streams, assuming we have been passed a valid ServerSocket object
-			this.createStreams();
+			this.createIOStreams();
+			
+			// TODO: use clientSignOn and clientSignOff processing around here
+			// the tServer should use clientSignOn to indicate the "start" of transmission,
+			// and use the clientSignOff to indicate the "end" of transmission. 
+			// ...We'll see how that works.
 			
 			this.transmitPayload(this.outgoingPayload);
-
-
-			
 
 	}
 
@@ -255,10 +321,13 @@ public class tServer implements Runnable {
 
 		// debug output for when debugFlag set to TRUE
 		if (this.debugFlag == true) {
-			System.out.println("tServer stop method called!");
+			System.out.println("tServer| Stop method called!");
 		}
 
 		this.stopFlag = true;
+		
+
+
 		this.cleanupServerConnection();
 	}
 

@@ -57,7 +57,7 @@ public class TransponderTCP implements Runnable{
 	// Constructor for Mode 2 (Client)
 	public TransponderTCP(int mode, Socket clientSock, SocketAddress remoteAddr) {
 		this.mode = mode;
-		tClient client = new tClient(clientSock);
+		tClient client = new tClient(clientSock,this);
 		client.setRemoteSocketAddress(remoteAddr);
 		this.tClientSet.add(client);
 	}
@@ -160,7 +160,7 @@ public class TransponderTCP implements Runnable{
 			System.out.println("Listening for connection at: " + this.serverSocket.getInetAddress());
 		}
 
-		tServer server = new tServer(this.serverSocket,this.tServerSockAddr);
+		tServer server = new tServer(this.serverSocket,this.tServerSockAddr,this);
 		server.setOutgoingPayload(serverPayload);
 
 		if (this.debugFlag == true) {
