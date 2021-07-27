@@ -29,7 +29,7 @@ public class tServer implements Runnable {
 	private Socket remoteSocketTCP = null;
 	private OutputStream outputStream = null;
 	private InputStream inputStream = null;
-	private BufferedInputStream serverBuffStream = null;
+	private BufferedInputStream serverBuffInputStream = null;
 	private BufferedOutputStream serverBuffOutStream = null;
 	private ObjectOutputStream objOutputStream = null;
 	private ObjectInputStream objInputStream = null;
@@ -81,6 +81,27 @@ public class tServer implements Runnable {
 			return false;
 		}
 	}
+	
+	public void processSignOn() {
+		if(this.objInputStream != null) {
+			try {
+				
+				Object signOnObject = this.objInputStream.readObject();
+				
+				if(signOnObject instanceof clientSignOn) {
+					
+					// debug output for when debugFlag set to TRUE
+					if (this.debugFlag == true) {
+						System.out.println("tServer| signOnObject received!\nclientSignOn:\n"+ signOnObject.toString());
+					}
+				}
+
+			} catch (ClassNotFoundException | IOException e) {
+				System.out.println("tServer| signOnObject error!");
+				e.printStackTrace();
+			}
+		}
+	}
 
 	// setOutgoingPayload assigns an outgoing payload object to this
 	// tServer's outgoingPayload field.
@@ -93,67 +114,60 @@ public class tServer implements Runnable {
 		this.outgoingPayload = payload;
 	}
 	
-	public void createIOStreams() {
+	public void createInputStreams() {
+		//Create inputStreams
+				if(this.objInputStream == null) {
+					
+					try {
+						
+						this.inputStream = this.remoteSocketTCP.getInputStream();
+						this.serverBuffInputStream = new BufferedInputStream(inputStream);
+						this.objInputStream = new ObjectInputStream(serverBuffInputStream);
+						
+
+						if (this.debugFlag == true) {
+							System.out.println("tServer| createInputStreams successful!");
+						}
+
+					} catch (IOException e) {
+						// TODO Auto-generated catch block
+						System.out.println("tServer| inputStream creation failed!");
+						e.printStackTrace();
+					}
+				}
+
+	}
+	
+	public void createOutputStreams() {
 		
 		//TODO: the order of the inputStream / outputStream creation matters between client and server!
 		// Idea: Establish connection, make client send a 'clientSignOn' object,
 		// then the server opens the output stream and transmits the payload until a
 		// clientSignOff has been received.
 
-		//Create inputStreams
-		if(this.inputStream == null && this.objInputStream == null) {
-			
-			try {
-				
-				this.inputStream = this.remoteSocketTCP.getInputStream();
-				this.objInputStream = new ObjectInputStream(inputStream);
-				
-			} catch (IOException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-			}
-		}
-
-		if (this.debugFlag == true) {
-			System.out.println("createStreams completed!");
-		}
-
+		
 		
 		// If we currently have no outputStream, create one by calling getOutputStream() 
 		// on the remote socket
-		if (this.outputStream == null) {
+		if (this.objOutputStream == null) {
 			try {
 				this.outputStream = this.remoteSocketTCP.getOutputStream();
-				
+				this.serverBuffOutStream = new BufferedOutputStream(this.outputStream);
+				this.objOutputStream = new ObjectOutputStream(this.serverBuffOutStream);
+				this.objOutputStream.flush();
+
 				// debug output
 				if (this.debugFlag == true) {
-					System.out.println("tServer| outputStream created successfully!");
+					System.out.println("tServer| outputStreams created successfully!");
 					
 				}
 				
 			} catch (IOException e) {
 				// TODO Auto-generated catch block
+				System.out.println("tServer| outputStreams creation failed!");
 				e.printStackTrace();
 			}
 			
-		}
-		
-		// If we currently have no ObjectOutputStream, create one by using outputStream as the
-		// argument for the ObjectOutputStream constructor
-
-		if (this.objOutputStream == null) {
-			try {
-				this.objOutputStream = new ObjectOutputStream(this.outputStream);
-				
-				// debug output
-				if (this.debugFlag == true) {
-					System.out.println("objOutputStream created successfully!");
-				}
-				
-			} catch (IOException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-			}
 		}
 		
 	}
@@ -203,22 +217,22 @@ public class tServer implements Runnable {
 			// write the object, allow the address to be reused, and close the streams
 			if(this.remoteSocketTCP.isConnected() == true && !this.remoteSocketTCP.isClosed()){
 				
-				//TODO: EXPERIMENTAL: Gonna put this in a loop
+				
+				// TODO: EXPERIMENTAL: Gonna put this in a loop
+				
 				while(this.stopFlag == false) {
+										
 					
-					try {
-						Thread.sleep(300);
-					} catch (InterruptedException e) {
-						// TODO Auto-generated catch block
-						e.printStackTrace();
-					}
 
 					// debug output for when debugFlag set to TRUE
 					if (this.debugFlag == true) {
 						System.out.println("tServer| Writing Object: \n" + this.outgoingPayload.toString());
 					}
 					
+					// Transmit the object via ObjOutputStream!
+					this.objOutputStream.reset();
 					this.objOutputStream.writeObject(payload);
+					this.objOutputStream.flush();
 				}
 				
 
@@ -302,16 +316,18 @@ public class tServer implements Runnable {
 			} catch (IOException e1) {
 				e1.printStackTrace();
 			}
+			
+			// Handshake_1: Create InputStreams so we can detect a clientSignOff
+			this.createInputStreams();
+			
+			// Handshake_2: Once clientSignOn has been received - create Output streams to transmit payload
+			this.createOutputStreams();
+
+			// Handshake_3: Listen for clientSignOn object
+			this.processSignOn();
 
 			
-			// Create streams, assuming we have been passed a valid ServerSocket object
-			this.createIOStreams();
-			
-			// TODO: use clientSignOn and clientSignOff processing around here
-			// the tServer should use clientSignOn to indicate the "start" of transmission,
-			// and use the clientSignOff to indicate the "end" of transmission. 
-			// ...We'll see how that works.
-			
+			// Handshake_4: Transmit payload until we receive a clientSignOff object
 			this.transmitPayload(this.outgoingPayload);
 
 	}

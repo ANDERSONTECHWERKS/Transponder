@@ -112,6 +112,7 @@ public class Tests extends TestCase{
 	public void testServer() {
 		InetSocketAddress serverAddr = null;
 		ServerSocket serverSock = null;
+		Payload testPayload = new Payload(5,"RED");
 
 		serverAddr = new InetSocketAddress(InetAddress.getLoopbackAddress(),6969);
 		
@@ -124,6 +125,7 @@ public class Tests extends TestCase{
 		}
 
 		tServer testServer = new tServer(serverSock,serverAddr);
+		testServer.setOutgoingPayload(testPayload);
 		
 		Thread serverThread = new Thread(testServer);
 		
@@ -147,20 +149,20 @@ public class Tests extends TestCase{
 		}
 		
 		tClient testClient = new tClient(localSock);
-		testClient.run();
+		
+		Thread clientThread = new Thread(testClient);
+
+		clientThread.start();
 	}
 	
+	//testServerAndClient is currently broken. Gotta think of a clever way to do this...
 	public void testServerAndClient() {
+
 		InetSocketAddress serverAddr = null;
 		ServerSocket serverSock = null;
+		Payload testPayload = new Payload(5,"RED");
 
-		//Create InetSocketAddress object via serverIP bytes and hand-input port number
-		try {
-			serverAddr = new InetSocketAddress(InetAddress.getLocalHost(),6969);
-		} catch (UnknownHostException e1) {
-			// TODO Auto-generated catch block
-			e1.printStackTrace();
-		}
+		serverAddr = new InetSocketAddress(Inet4Address.getLoopbackAddress(),6969);
 		
 		// Try instantiating serverSock
 		try {
@@ -172,8 +174,8 @@ public class Tests extends TestCase{
 
 		tServer testServer = new tServer(serverSock,serverAddr);
 		
-		testServer.run();
-		
+		testServer.setOutgoingPayload(testPayload);
+		testServer.setDebugFlag(true);
 		
 		
 		Socket localSock = null;
@@ -191,7 +193,12 @@ public class Tests extends TestCase{
 		}
 		
 		tClient testClient = new tClient(localSock);
-		testClient.run();
+		testClient.setDebugFlag(true);
+		Thread serverThread = new Thread(testServer);
+		Thread clientThread = new Thread(testClient);
+		
+		serverThread.start();
+		clientThread.start();
 	}
 	
 	@Test

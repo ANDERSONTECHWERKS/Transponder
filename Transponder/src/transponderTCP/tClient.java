@@ -7,6 +7,7 @@ import java.io.InputStream;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.io.OutputStream;
+import java.net.InetAddress;
 import java.net.Socket;
 import java.net.SocketAddress;
 import java.net.SocketException;
@@ -297,7 +298,7 @@ public class tClient implements Runnable {
 	// receiveTCP attempts to obtain an inputStream from clientSocketLocal and
 	// assign it to clientStream
 
-	public synchronized void receiveTCP() {
+	public void receivePayload() {
 
 		// TODO: Create type-check for this.incomingPayload
 		// This is likely a huge security issue to just *blatantly accept* objects and
@@ -305,6 +306,7 @@ public class tClient implements Runnable {
 		// as Payloads.
 
 		try {
+
 			Object temp = objInpStream.readObject();
 
 			if (temp instanceof Payload) {
@@ -355,34 +357,35 @@ public class tClient implements Runnable {
 
 	public void performSignOn() {
 		// Assumes we have a connected and NOT-closed socket
-		if (this.clientSocketLocal.isConnected() && !this.clientSocketLocal.isClosed()) {
+		
+		// Attempts writing the clientSON object
+		if (!this.clientSocketLocal.isOutputShutdown()) {
 
-			// Try getting an outputStream from the socket, then make a BufferedOutput and
-			// ObjectOutputStream
 			try {
-				OutputStream outputStream = this.clientSocketLocal.getOutputStream();
-				this.clientBuffOutputStream = new BufferedOutputStream(outputStream);
-				this.objOutStream = new ObjectOutputStream(clientBuffOutputStream);
-
-				// Transmit sign-on object
-				this.objOutStream.writeObject(this.clientSON);
-
-				// After the sign-on has transmitted and been accepted -
-				// The server should start broadcasting it's payload to the client
-
+				this.objOutStream.reset();
+				this.objOutStream.writeObject(clientSON);
+				this.objOutStream.flush();
 			} catch (IOException e) {
 				// TODO Auto-generated catch block
 				e.printStackTrace();
 			}
-
 		}
 	}
 
 	// Transmits a clientSignOff object
 	public void performSignOff() {
+		// Assumes we have a connected and NOT-closed socket
 
 		if (this.objOutStream != null && this.clientSOFF != null) {
+			try {
+				this.objOutStream.reset();
+				this.objOutStream.writeObject(clientSOFF);
+				this.objOutStream.flush();
 
+			} catch (IOException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
 		}
 
 	}
@@ -392,18 +395,44 @@ public class tClient implements Runnable {
 	public void cleanupClientConnection() {
 
 		this.incomingPayload = null;
-		if(this.clientBuffInputStream != null && this.clientSocketLocal != null) {
-			
+		if (this.clientBuffInputStream != null && this.clientSocketLocal != null) {
+
 			try {
-				
+
 				this.clientBuffInputStream.close();
 				this.clientSocketLocal.close();
-				
+
 			} catch (IOException e) {
-				
+
 				e.printStackTrace();
-				
+
 			}
+		}
+	}
+
+	public void createInputStreams() {
+		//Create a new BufferedInputStream from the inputStream generated via Socket method
+		try {
+			this.clientBuffInputStream = new BufferedInputStream(this.clientSocketLocal.getInputStream());
+			this.objInpStream = new ObjectInputStream(this.clientBuffInputStream);
+		} catch(java.io.EOFException e) {
+			System.out.println("tClient| EOF exception with ObjectInputStream!");
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} 
+	}
+
+	public void createOutputStreams() {
+		//Create a new BufferedInputStream from the inputStream generated via Socket method
+		try {
+			this.clientBuffOutputStream = new BufferedOutputStream(this.clientSocketLocal.getOutputStream());
+			this.objOutStream = new ObjectOutputStream(this.clientBuffOutputStream);
+			this.objOutStream.flush();
+
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
 		}
 	}
 
@@ -422,24 +451,56 @@ public class tClient implements Runnable {
 			}
 		}
 	}
+	
+	public clientSignOn generateClientSignOn(InetAddress client, InetAddress server) {
+		
+		clientSignOn signOn = new clientSignOn(client,server);
+		
+		return signOn;
+	}
+	
+	public clientSignOff generateClientSignOff(InetAddress client, InetAddress server) {
+		clientSignOff signOff = new clientSignOff(client,server);
+		
+		return signOff;
+	}
 
 	// runs the thread
 	@Override
 	public void run() {
-		// TODO: Consider whether or not we need this run block within a do(while)-loop
 
+		// To begin, create the OutputStreams that we will use to send clientSignOn/clientSignOff objects
+		this.createOutputStreams();
+		
+		// Create inputStreams and begin receiving
+		this.createInputStreams();
+
+		// Generate the clientSON and clientSOFF objects
+		this.clientSON = this.generateClientSignOn(this.clientSocketLocal.getLocalAddress(), this.clientSocketLocal.getInetAddress());
+		this.clientSOFF = this.generateClientSignOff(this.clientSocketLocal.getLocalAddress(), this.clientSocketLocal.getInetAddress());
+
+
+		// Perform clientSignOn
+		// When clientSignOn is transmitted, assume that payloads are being transmitted. 
+		this.performSignOn();
+
+		
+		//pre-flight checks and begin recieving payload
 		if (this.isClientReady() == true) {
 			// Receive the TCP transmission
 			while (this.stopFlag == false) {
-				this.receiveTCP();
+				
+				// Receive Payload after SignOn
+				this.receivePayload();
 			}
 		} else {
-			System.out.println("tClient| Client not ready!");
+			System.out.println("tClient| isClientReady returned false!");
 		}
 	}
 
 	public void stop() {
 		this.stopFlag = true;
+		this.performSignOff();
 		this.cleanupClientConnection();
 	}
 
