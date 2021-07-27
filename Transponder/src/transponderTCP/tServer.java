@@ -76,6 +76,13 @@ public class tServer implements Runnable {
 		if (this.outputStream == null) {
 			try {
 				this.outputStream = this.remoteSocketTCP.getOutputStream();
+				
+				// debug output
+				if (this.debugFlag == true) {
+					System.out.println("tServer| outputStream created successfully!");
+					
+				}
+				
 			} catch (IOException e) {
 				// TODO Auto-generated catch block
 				e.printStackTrace();
@@ -89,10 +96,20 @@ public class tServer implements Runnable {
 		if (this.objOutputStream == null) {
 			try {
 				this.objOutputStream = new ObjectOutputStream(this.outputStream);
+				
+				// debug output
+				if (this.debugFlag == true) {
+					System.out.println("objOutputStream created successfully!");
+				}
+				
 			} catch (IOException e) {
 				// TODO Auto-generated catch block
 				e.printStackTrace();
 			}
+		}
+		
+		if (this.debugFlag == true) {
+			System.out.println("createStreams completed!");
 		}
 	}
 
@@ -104,15 +121,9 @@ public class tServer implements Runnable {
 		if (this.outgoingPayload == null) {
 			throw new IllegalArgumentException("tServer payload not set!");
 		}
+
 		try {
-			
-			// debug output for when debugFlag set to TRUE
-			if (this.debugFlag == true) {
-				System.out.println("tServer| objOutputStream created. Writing payload to objOutputStream.");
-				System.out.println("tServer| Writing Object: \n" + this.outgoingPayload.toString());
-			}
-			
-			// debug output (again)
+	
 			// Keep in this block until we know where we want it to go
 			// TL;DR: If the debugFlag is true, we will output any/all relevant 
 			// socket and stream information before we transmit
@@ -121,18 +132,21 @@ public class tServer implements Runnable {
 
 				if(this.objOutputStream == null) {
 					System.out.println("objOutputStream is null!");
+					
 				} else {
 					System.out.println("ObjOutputStream ID: " + this.objOutputStream.toString());
 				}
 
 				if(this.outputStream == null) {
 					System.out.println("outputStream is null!");
+					
 				} else {
 					System.out.println("outputStream ID:" + this.outputStream.toString());					
 				}
 				
 				if(this.remoteSocketTCP == null) {
 					System.out.println("remoteSocketTCP is null!");
+					
 				} else {
 					System.out.println("remoteSocketTCP ID:" + this.remoteSocketTCP.toString());					
 				}
@@ -143,12 +157,19 @@ public class tServer implements Runnable {
 			
 			// write the object, allow the address to be reused, and close the streams
 			if(this.remoteSocketTCP.isConnected() == true && !this.remoteSocketTCP.isClosed()){
-				this.objOutputStream.writeObject(payload);
-
-			}
-			
-			this.cleanupServerConnection();
-			
+				
+				//TODO: EXPERIMENTAL: Gonna put this in a loop
+				while(this.stopFlag == false) {
+					
+					this.objOutputStream.writeObject(payload);
+				}
+				
+				// debug output for when debugFlag set to TRUE
+				if (this.debugFlag == true) {
+					System.out.println("tServer| objOutputStream created. Writing payload to objOutputStream.");
+					System.out.println("tServer| Writing Object: \n" + this.outgoingPayload.toString());
+				}
+			}			
 
 		} catch (SocketException e) {
 			if (this.debugFlag == true) {
@@ -209,6 +230,11 @@ public class tServer implements Runnable {
 			// Here, we wait for a Socket connection
 			try {
 				this.remoteSocketTCP = this.ServerSocketTCP.accept();
+				
+				if (this.debugFlag == true) {
+					System.out.println("Client connected from: " + this.remoteSocketTCP.getRemoteSocketAddress().toString());
+				}
+				
 			} catch (IOException e1) {
 				e1.printStackTrace();
 			}
@@ -217,12 +243,7 @@ public class tServer implements Runnable {
 			// Create streams, assuming we have been passed a valid ServerSocket object
 			this.createStreams();
 			
-			
-				if (this.debugFlag == true) {
-					System.out.println("Client connected from: " + this.remoteSocketTCP.getRemoteSocketAddress().toString());
-				}
-
-				this.transmitPayload(this.outgoingPayload);
+			this.transmitPayload(this.outgoingPayload);
 
 
 			
@@ -238,6 +259,7 @@ public class tServer implements Runnable {
 		}
 
 		this.stopFlag = true;
+		this.cleanupServerConnection();
 	}
 
 	public void setDebugFlag(Boolean flag) {

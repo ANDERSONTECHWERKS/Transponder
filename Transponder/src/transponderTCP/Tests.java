@@ -2,10 +2,13 @@ package transponderTCP;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.net.Inet4Address;
+import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.net.SocketAddress;
+import java.net.UnknownHostException;
 import java.util.Scanner;
 
 import org.junit.Assert;
@@ -28,6 +31,7 @@ public class Tests extends TestCase{
 		TransponderTCP testTranspClient;
 		Payload testPayload = new Payload(69,"Test");
 		debugObj dObj = new debugObj();
+		
 		try {
 			servSock = new ServerSocket();
 			testTranspServer = new TransponderTCP(1,servSock,serverSockAddr);
@@ -104,9 +108,100 @@ public class Tests extends TestCase{
 
 		
 	}
-	
 	@Test
 	public void testServer() {
+		InetSocketAddress serverAddr = null;
+		ServerSocket serverSock = null;
+
+		//Create InetSocketAddress object via serverIP bytes and hand-input port number
+		try {
+			serverAddr = new InetSocketAddress(InetAddress.getLocalHost(),6969);
+		} catch (UnknownHostException e1) {
+			// TODO Auto-generated catch block
+			e1.printStackTrace();
+		}
+		
+		// Try instantiating serverSock
+		try {
+			serverSock = new ServerSocket(6969, 1, serverAddr.getAddress());
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+
+		tServer testServer = new tServer(serverSock,serverAddr);
+		
+		Thread serverThread = new Thread(testServer);
+		
+		serverThread.start();
+	}
+	
+	@Test
+	public void testClient() {
+		Socket localSock = null;
+		
+		try {
+			System.out.println("Setting client/remote address to:" + Inet4Address.getLoopbackAddress()+ ":6969  " + Inet4Address.getLoopbackAddress() + ":7000");
+			
+			localSock = new Socket(Inet4Address.getLoopbackAddress(),6969, Inet4Address.getLoopbackAddress(),7000);
+		} catch (UnknownHostException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		
+		tClient testClient = new tClient(localSock);
+		testClient.run();
+	}
+	
+	public void testServerAndClient() {
+		InetSocketAddress serverAddr = null;
+		ServerSocket serverSock = null;
+
+		//Create InetSocketAddress object via serverIP bytes and hand-input port number
+		try {
+			serverAddr = new InetSocketAddress(InetAddress.getLocalHost(),6969);
+		} catch (UnknownHostException e1) {
+			// TODO Auto-generated catch block
+			e1.printStackTrace();
+		}
+		
+		// Try instantiating serverSock
+		try {
+			serverSock = new ServerSocket(6969, 1, serverAddr.getAddress());
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+
+		tServer testServer = new tServer(serverSock,serverAddr);
+		
+		testServer.run();
+		
+		
+		
+		Socket localSock = null;
+		
+		try {
+			System.out.println("Setting client/remote address to:" + Inet4Address.getLoopbackAddress()+ ":6969  " + Inet4Address.getLoopbackAddress() + ":7000");
+			
+			localSock = new Socket(Inet4Address.getLoopbackAddress(),6969, Inet4Address.getLoopbackAddress(),7000);
+		} catch (UnknownHostException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		
+		tClient testClient = new tClient(localSock);
+		testClient.run();
+	}
+	
+	@Test
+	public void testServerSimInput() {
 		String createMode1Input = new String("1" + System.lineSeparator() + "127.0.0.1"
 				+ System.lineSeparator() + "6969" + System.lineSeparator()  
 				+ System.lineSeparator() + "1" + System.lineSeparator() + "Test"
@@ -120,7 +215,7 @@ public class Tests extends TestCase{
 	}
 	
 	@Test
-	public void testClient() {
+	public void testClientSimInput() {
 		String createMode2Input = new String("2" + System.lineSeparator() + "127.0.0.1"
 				+ System.lineSeparator() + "7000" + System.lineSeparator()  
 				+ System.lineSeparator() + "127.0.0.1" + System.lineSeparator() + "6969"

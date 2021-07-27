@@ -32,6 +32,7 @@ public class TransponderTCP implements Runnable{
 		this.mode = mode;
 		this.serverSocket = localServerSocket;
 		
+		
 		// Check if the localServerSocket has connection details,
 		// but is not bound.
 		// This check is relevant when localServerSocket is passed in while unconnected,
@@ -140,6 +141,12 @@ public class TransponderTCP implements Runnable{
 		if (this.mode != 1) {
 			this.mode = 1;
 		}
+		
+		//Standard re-initialization block, to clear out clients/servers between mode switches
+		tClientSet = new HashSet<tClient>();
+		clientThreads = new HashSet<Thread>();
+		tServerSet = new HashSet<tServer>();
+		serverThreads = new HashSet<Thread>();
 
 		if (this.serverSocket == null) {
 			throw new IllegalStateException("serverSocket not set!");
@@ -177,6 +184,7 @@ public class TransponderTCP implements Runnable{
 	// This method configures Mode 2
 	// Mode 2 is client-only, no server
 	public void confMode2() {
+
 		// Set mode, in case of mode switch
 		if (this.mode != 2) {
 			this.mode = 2;
@@ -205,6 +213,22 @@ public class TransponderTCP implements Runnable{
 			this.clientThreads.add(addedThread);
 			addedThread.start();
 		}
+	}
+	
+	//TODO: Finish this method! Not sure if I want to start with re-initializing HashSets[tClientSet,clientThreads,tServerSet,serverThreads] or not...
+	public void confMode3() {
+
+		// Set mode, in case of mode switch
+		if(this.mode != 3) {
+			this.mode = 3;
+		}
+		
+		//Standard re-initialization block, to clear out clients/servers between mode switches
+		tClientSet = new HashSet<tClient>();
+		clientThreads = new HashSet<Thread>();
+		tServerSet = new HashSet<tServer>();
+		serverThreads = new HashSet<Thread>();
+		
 	}
 
 	// Assigns a debugObject.

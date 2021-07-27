@@ -131,6 +131,7 @@ public class ControllerMenu {
 		return greeting;
 	}
 
+	// controllerCMD contains the actual application engine via while loop
 	public void controllerCMD(Scanner userInput) {
 		boolean stopFlag = false;
 
@@ -170,16 +171,20 @@ public class ControllerMenu {
 					this.mode = this.promptModeSetting(inputScanner);
 					// Mode 1 is server-only
 					if (this.mode == 1) {
+						
 						ServerSocket mode1ServSock = this.promptServerSocket(inputScanner);
+						
 						this.currTransponder = new TransponderTCP(1,mode1ServSock,mode1ServSock.getLocalSocketAddress());
 						
 						// After creating the transponder, 
 						// prompt and initialize the payload.
 						Payload initPayload = this.promptPayload(inputScanner);
+						
 						this.currTransponder.setInitialServerPayload(initPayload);
 						
 						// Debug prompt and set
 						this.debugFlag = this.promptDebugFlag(inputScanner);
+						
 						if(this.debugFlag == true) {
 							this.currTransponder.setDebugFlag(true);
 						}
