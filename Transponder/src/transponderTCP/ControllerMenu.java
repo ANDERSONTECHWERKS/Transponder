@@ -10,11 +10,10 @@ import java.util.Scanner;
 public class ControllerMenu {
 	private static ControllerMenu mainMenu = null;
 	private int mode = 0;
-	private int maxConnections = 0;
 	private TransponderTCP currTransponder = null;
 	private Scanner inputScanner = null;
 	private boolean debugFlag = false;
-
+	private Thread transponderThread = null;
 	
 	public ControllerMenu() {
 		if(this.inputScanner == null) {
@@ -38,7 +37,14 @@ public class ControllerMenu {
 				this.currTransponder.setDebugFlag(true);
 			}
 			
-			this.currTransponder.run();
+			// Create Transponder thread and start it
+			Thread transponderThread = new Thread(this.currTransponder);
+			this.transponderThread = transponderThread;
+			transponderThread.start();
+
+			// Set this object to be the static mainMenu
+			mainMenu = this;
+			mainMenu.controllerCMD(mainMenu.getScanner());
 
 		}
 
@@ -52,7 +58,15 @@ public class ControllerMenu {
 			if(this.debugFlag == true) {
 				this.currTransponder.setDebugFlag(true);
 			}
-			this.currTransponder.run();
+			
+			// Create Transponder thread and start it
+			Thread transponderThread = new Thread(this.currTransponder);
+			this.transponderThread = transponderThread;
+			transponderThread.start();
+			
+			// Set this object to be the static mainMenu
+			mainMenu = this;
+			mainMenu.controllerCMD(mainMenu.getScanner());
 
 		}
 	}
@@ -62,6 +76,7 @@ public class ControllerMenu {
 		this.mode = this.promptModeSetting(altScanner);
 		// Mode 1 is server-only
 		if (this.mode == 1) {
+			// Create Server socket, use it in the constructor for currTransponder
 			ServerSocket mode1ServSock = this.promptServerSocket(this.inputScanner);
 			this.currTransponder = new TransponderTCP(1,mode1ServSock,mode1ServSock.getLocalSocketAddress());
 			
@@ -75,21 +90,31 @@ public class ControllerMenu {
 			if(this.debugFlag == true) {
 				this.currTransponder.setDebugFlag(true);
 			}
-
+			
+			// Create Transponder thread and start it
+			Thread transponderThread = new Thread(this.currTransponder);
+			this.transponderThread = transponderThread;
+			transponderThread.start();
 		}
 
 		// Mode 2 is client-only
 		if (this.mode == 2) {
+			// Create client socket, use it in the constructor for currTransponder
 			Socket mode2Sock = this.promptClientSocket(this.inputScanner);
 			this.currTransponder = new TransponderTCP(2,mode2Sock, mode2Sock.getRemoteSocketAddress());
-		}
-		
-		// Debug prompt and set
-		this.debugFlag = this.promptDebugFlag(inputScanner);
-		if(this.debugFlag == true) {
-			this.currTransponder.setDebugFlag(true);
-		}
 
+			// Debug prompt and set
+			this.debugFlag = this.promptDebugFlag(inputScanner);
+
+			if(this.debugFlag == true) {
+				this.currTransponder.setDebugFlag(true);
+			}
+
+			// Create Transponder thread and start it
+			Thread transponderThread = new Thread(this.currTransponder);
+			this.transponderThread = transponderThread;
+			transponderThread.start();
+		}
 	}
 
 	public static void main(String[] args) {
@@ -106,6 +131,7 @@ public class ControllerMenu {
 		return greeting;
 	}
 
+	// controllerCMD contains the actual application engine via while loop
 	public void controllerCMD(Scanner userInput) {
 		boolean stopFlag = false;
 
@@ -145,16 +171,20 @@ public class ControllerMenu {
 					this.mode = this.promptModeSetting(inputScanner);
 					// Mode 1 is server-only
 					if (this.mode == 1) {
+						
 						ServerSocket mode1ServSock = this.promptServerSocket(inputScanner);
+						
 						this.currTransponder = new TransponderTCP(1,mode1ServSock,mode1ServSock.getLocalSocketAddress());
 						
 						// After creating the transponder, 
 						// prompt and initialize the payload.
 						Payload initPayload = this.promptPayload(inputScanner);
+						
 						this.currTransponder.setInitialServerPayload(initPayload);
 						
 						// Debug prompt and set
 						this.debugFlag = this.promptDebugFlag(inputScanner);
+						
 						if(this.debugFlag == true) {
 							this.currTransponder.setDebugFlag(true);
 						}
@@ -214,9 +244,8 @@ public class ControllerMenu {
 		String serverInput = keyboardInput.next();
 		System.out.println("Input Local Server Socket:\n");
 		portInput = keyboardInput.nextInt();
-		System.out.println("Input MAXIMUM number of connections on local server:\n");
+		System.out.println("Input connection backlog value on local server:\n");
 		backlogInput = keyboardInput.nextInt();
-		this.maxConnections = backlogInput;
 
 		// Create InetAddress object using constructor
 		// With string as the input
