@@ -24,4 +24,34 @@ public class Payload implements Serializable{
 				+ "\n" +"Message Name: " +messageName + "\n";
 		return resultString;
 	}
+	
+	public String getMessageName() {
+		return this.messageName;
+	}
+	
+	public int getMessageNumber() {
+		return this.messageNumber;
+	}
+	
+	
+	@Override
+	public boolean equals(Object o) {
+		
+		if(o == this) {
+			return true;
+		}
+		
+		if(!(o instanceof Payload)) {
+			return false;
+		}
+		
+		Payload p = (Payload)o;
+		
+		if(p.getMessageName().compareTo(this.getMessageName()) == 0
+				&& p.getMessageNumber() == this.getMessageNumber()) {
+			return true;
+		}
+		
+		return false;
+	}
 }

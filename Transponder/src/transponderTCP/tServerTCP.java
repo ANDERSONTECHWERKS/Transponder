@@ -22,7 +22,7 @@ import java.util.concurrent.TimeUnit;
 //TODO: Write IOstreams for inputStreams to accept clientSignOn, and consider 
 // how the handshake for clientSignOn/clientSignOff should operate.
 
-public class tServer implements Runnable {
+public class tServerTCP implements Runnable {
 
 	private ServerSocket ServerSocketTCP = null;
 	private SocketAddress localAddrTCP = null;
@@ -41,7 +41,7 @@ public class tServer implements Runnable {
 
 	// tServer instance without parent reference. 
 	// ONLY USE FOR TROUBLESHOOTING!
-	public tServer(ServerSocket serverSocket, SocketAddress localAddr) {
+	public tServerTCP(ServerSocket serverSocket, SocketAddress localAddr) {
 		this.localAddrTCP = localAddr;
 		this.ServerSocketTCP = serverSocket;
 	}
@@ -51,7 +51,7 @@ public class tServer implements Runnable {
 	// as a local ServerSocket with a local address.
 	// Includes reference to parent transponderTCP object for callbacks!
 
-	public tServer(ServerSocket serverSocket, SocketAddress localAddr, TransponderTCP parent) {
+	public tServerTCP(ServerSocket serverSocket, SocketAddress localAddr, TransponderTCP parent) {
 		this.parentTransponder = parent;
 		this.localAddrTCP = localAddr;
 		this.ServerSocketTCP = serverSocket;
@@ -61,7 +61,7 @@ public class tServer implements Runnable {
 	// instantiated
 	// Includes reference to parent transponderTCP object for callbacks!
 
-	public tServer(ServerSocket serverSocket, Socket clientSocket, TransponderTCP parent) {
+	public tServerTCP(ServerSocket serverSocket, Socket clientSocket, TransponderTCP parent) {
 		this.parentTransponder = parent;
 		this.ServerSocketTCP = serverSocket;
 		this.localAddrTCP = this.ServerSocketTCP.getLocalSocketAddress();
@@ -140,7 +140,7 @@ public class tServer implements Runnable {
 	
 	public void createOutputStreams() {
 		
-		//TODO: the order of the inputStream / outputStream creation matters between client and server!
+		// The order of the inputStream / outputStream creation matters between client and server!
 		// Idea: Establish connection, make client send a 'clientSignOn' object,
 		// then the server opens the output stream and transmits the payload until a
 		// clientSignOff has been received.
@@ -259,6 +259,8 @@ public class tServer implements Runnable {
 		
 		try {
 			this.remoteSocketTCP.setSoLinger(true, 0);
+			this.remoteSocketTCP.setKeepAlive(false);
+			this.remoteSocketTCP.setReuseAddress(true);
 			this.ServerSocketTCP.setReuseAddress(true);
 			
 		} catch (SocketException e) {
@@ -280,9 +282,17 @@ public class tServer implements Runnable {
 		
 		try {
 			this.objOutputStream.close();
-			this.outputStream.close();
+			this.objInputStream.close();
+			
+			this.serverBuffOutStream.close();
+			this.serverBuffInputStream.close();
+
+			this.ServerSocketTCP.close();
+			
+			this.remoteSocketTCP.shutdownOutput();
+			this.remoteSocketTCP.shutdownInput();
+			
 			this.remoteSocketTCP.close();
-			this.remoteSocketTCP = null;
 
 		} catch (IOException e) {
 			System.out.println("tServer| cleanupServerConnection failed!");
