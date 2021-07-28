@@ -342,7 +342,6 @@ public class tServerTCP implements Runnable {
 
 	}
 
-
 	public void stop() {
 
 		// debug output for when debugFlag set to TRUE
