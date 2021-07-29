@@ -40,7 +40,7 @@ public class tServerTCP implements Runnable {
 	private TransponderTCP parentTransponder = null;
 
 	// tServer instance without parent reference. 
-	// ONLY USE FOR TROUBLESHOOTING!
+	// ONLY USE FOR TROUBLESHOOTING/DEBUG!
 	public tServerTCP(ServerSocket serverSocket, SocketAddress localAddr) {
 		this.localAddrTCP = localAddr;
 		this.ServerSocketTCP = serverSocket;
@@ -218,11 +218,9 @@ public class tServerTCP implements Runnable {
 			if(this.remoteSocketTCP.isConnected() == true && !this.remoteSocketTCP.isClosed()){
 				
 				
-				// TODO: EXPERIMENTAL: Gonna put this in a loop
+				// TODO: EXPERIMENTAL: Using "if" check to make a single transmission
 				
-				while(this.stopFlag == false) {
-										
-					
+				if(this.stopFlag == false) {
 
 					// debug output for when debugFlag set to TRUE
 					if (this.debugFlag == true) {
@@ -234,8 +232,6 @@ public class tServerTCP implements Runnable {
 					this.objOutputStream.writeObject(payload);
 					this.objOutputStream.flush();
 				}
-				
-
 			}			
 
 		} catch (SocketException e) {
@@ -319,7 +315,7 @@ public class tServerTCP implements Runnable {
 				this.remoteSocketTCP = this.ServerSocketTCP.accept();
 				
 				if (this.debugFlag == true) {
-					System.out.println("Client connected from: " + this.remoteSocketTCP.getRemoteSocketAddress().toString());
+					System.out.println("tServer| Client connected from: " + this.remoteSocketTCP.getRemoteSocketAddress().toString());
 				}
 				
 				
@@ -335,7 +331,7 @@ public class tServerTCP implements Runnable {
 
 			// Handshake_3: Listen for clientSignOn object
 			this.processSignOn();
-
+			
 			
 			// Handshake_4: Transmit payload until we receive a clientSignOff object
 			this.transmitPayload(this.outgoingPayload);

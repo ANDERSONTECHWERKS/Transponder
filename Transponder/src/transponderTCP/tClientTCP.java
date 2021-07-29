@@ -516,14 +516,14 @@ public class tClientTCP implements Runnable {
 		// When clientSignOn is transmitted, assume that payloads are being transmitted.
 		this.performSignOn();
 
-		// pre-flight checks and begin recieving payload
+		// pre-flight checks with isClientReady() and begin recieving payload
+		
 		if (this.isClientReady() == true) {
 			// Receive the TCP transmission
-			while (this.stopFlag == false) {
 
 				// Receive Payload after SignOn
 				this.receivePayload();
-			}
+				
 		} else {
 			System.out.println("tClient| isClientReady returned false!");
 		}
