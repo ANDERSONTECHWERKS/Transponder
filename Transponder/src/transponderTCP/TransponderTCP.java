@@ -9,29 +9,38 @@ import java.net.SocketException;
 import java.util.HashMap;
 import java.util.HashSet;
 
-public class TransponderTCP implements Runnable{
-	int mode;
-	private HashSet<tClient> tClientSet = new HashSet<tClient>();
+public class TransponderTCP implements Runnable, Transponder{
+	
+	private int mode;
+	
+	private ControllerMenu localController = null;
+	
+	private HashSet<tClientTCP> tClientSet = new HashSet<tClientTCP>();
 	private HashSet<Thread> clientThreads = new HashSet<Thread>();
-	private HashSet<tServer> tServerSet = new HashSet<tServer>();
+	private HashSet<tServerTCP> tServerSet = new HashSet<tServerTCP>();
 	private HashSet<Thread> serverThreads = new HashSet<Thread>();
-	private tServer tServerSingleton = null;
+	
+	private tServerTCP tServerSingleton = null;
+	
 	private SocketAddress tServerSockAddr = null;
+	
 	private ServerSocket serverSocket = null;
+	
 	private Payload serverPayload = null;
+	
 	private debugObj debugObj = null;
+	
 	private boolean debugFlag = false;
 
+	// BE ADVISED: Constructors without localController parameters are intended for debug ONLY!
 	public TransponderTCP(int mode) {
 		this.mode = mode;
 	}
 
-
-	// Constructor for Mode 1(Server)
+	// Constructor for Mode 1(Server-DEBUG)
 	public TransponderTCP(int mode, ServerSocket localServerSocket, SocketAddress localSockAddr) {
 		this.mode = mode;
 		this.serverSocket = localServerSocket;
-		
 		
 		// Check if the localServerSocket has connection details,
 		// but is not bound.
@@ -43,9 +52,7 @@ public class TransponderTCP implements Runnable{
 				try {
 					localServerSocket.bind(localSockAddr);
 				} catch (IOException e) {
-					// TODO Auto-generated catch block
-					// Errors thrown here will likely be bad localSockAddr issues.
-					// I think...
+					System.out.println("TransponderTCP| serverSocket binding issue!");
 					e.printStackTrace();
 				}
 			}
@@ -54,14 +61,55 @@ public class TransponderTCP implements Runnable{
 		this.tServerSockAddr = localSockAddr;
 	}
 
-	// Constructor for Mode 2 (Client)
+	// Constructor for Mode 2 (Client-DEBUG)
 	public TransponderTCP(int mode, Socket clientSock, SocketAddress remoteAddr) {
 		this.mode = mode;
-		tClient client = new tClient(clientSock,this);
+
+		tClientTCP client = new tClientTCP(clientSock,this);
+
 		client.setRemoteSocketAddress(remoteAddr);
+
 		this.tClientSet.add(client);
 	}
 	
+	// Constructor for Mode 1(Server-Actual)
+	public TransponderTCP(int mode, ServerSocket localServerSocket, SocketAddress localSockAddr, ControllerMenu controller) {
+		this.mode = mode;
+		this.serverSocket = localServerSocket;
+		this.localController = controller;
+		
+		// Check if the localServerSocket has connection details,
+		// but is not bound.
+		// This check is relevant when localServerSocket is passed in while unconnected,
+		// This check will assign the localSockAddr details to the localServerSocket
+		
+		if(this.serverSocket.isBound() == false) {
+			if(localSockAddr != null) {
+				try {
+					localServerSocket.bind(localSockAddr);
+				} catch (IOException e) {
+					System.out.println("TransponderTCP| serverSocket binding issue!");
+					e.printStackTrace();
+				}
+			}
+		}
+		
+		this.tServerSockAddr = localSockAddr;
+	}
+
+	// Constructor for Mode 2 (Client-Actual)
+	public TransponderTCP(int mode, Socket clientSock, SocketAddress remoteAddr, ControllerMenu controller) {
+		this.mode = mode;
+		this.localController = controller;
+
+		tClientTCP client = new tClientTCP(clientSock,this);
+
+		client.setRemoteSocketAddress(remoteAddr);
+
+		this.tClientSet.add(client);
+	}
+	
+	// Run thread, configuring selected mode
 	@Override
 	public void run() {
 
@@ -76,28 +124,16 @@ public class TransponderTCP implements Runnable{
 		}
 	}
 
+	// Close clients gracefully, stop threads (internally. Do NOT use Thread.stop()! Deprecated!)
 	public void stop() {
 		this.mode = 0;
 
-		for (tClient currClient : this.tClientSet) {
+		for (tClientTCP currClient : this.tClientSet) {
 			currClient.stop();
 		}
 
-		for (tServer currServer : this.tServerSet) {
+		for (tServerTCP currServer : this.tServerSet) {
 			currServer.stop();
-		}
-
-		// If we are in Mode 1 (Server):
-		// Close the serverSocket
-		// This happens in each tServer instance as well,
-		// But close it everywhere just to be sure.
-
-		if (this.mode == 1) {
-			try {
-				this.serverSocket.close();
-			} catch (IOException e) {
-				e.printStackTrace();
-			}
 		}
 	}
 
@@ -114,6 +150,10 @@ public class TransponderTCP implements Runnable{
 			this.serverPayload = payload;
 		}
 	}
+	
+	public void setControllerMenu(ControllerMenu localMenu) {
+		this.localController = localMenu;
+	}
 
 	public void updateServerPayload(Payload payload) {
 		if (this.tServerSingleton != null) {
@@ -122,13 +162,19 @@ public class TransponderTCP implements Runnable{
 	}
 
 	// This method binds a specified tClient to the parameter endpoint
-	public void clientBindRemoteSocks(tClient client, SocketAddress remoteEndpoint) {
-		for (tClient curr : this.tClientSet) {
+	public void clientBindRemoteSocks(tClientTCP client, SocketAddress remoteEndpoint) {
+		for (tClientTCP curr : this.tClientSet) {
 			if (curr.equals(client)) {
 				curr.setRemoteSocketAddress(remoteEndpoint);
 			}
 		}
 	}
+	
+	//Modes:
+	// 0 - Stopped
+	// 1 - Server
+	// 2 - Client
+	// 3 - Server, with receiving clients (relay mode? WIP.)
 
 	public void setMode(int mode) {
 		this.mode = mode;
@@ -136,6 +182,7 @@ public class TransponderTCP implements Runnable{
 
 	// This method configures Mode 1
 	// Mode 1 is server-only, no client
+	
 	public void confMode1() {
 		// Set mode, in case of mode switch
 		if (this.mode != 1) {
@@ -143,9 +190,9 @@ public class TransponderTCP implements Runnable{
 		}
 		
 		//Standard re-initialization block, to clear out clients/servers between mode switches
-		tClientSet = new HashSet<tClient>();
+		tClientSet = new HashSet<tClientTCP>();
 		clientThreads = new HashSet<Thread>();
-		tServerSet = new HashSet<tServer>();
+		tServerSet = new HashSet<tServerTCP>();
 		serverThreads = new HashSet<Thread>();
 
 		if (this.serverSocket == null) {
@@ -156,17 +203,21 @@ public class TransponderTCP implements Runnable{
 			throw new IllegalStateException("tServerSockAddr not set!");
 		}
 
-		if (this.debugFlag == true) {
-			System.out.println("Listening for connection at: " + this.serverSocket.getInetAddress());
-		}
 
-		tServer server = new tServer(this.serverSocket,this.tServerSockAddr,this);
+
+		tServerTCP server = new tServerTCP(this.serverSocket,this.tServerSockAddr,this);
 		server.setOutgoingPayload(serverPayload);
-
+		
+		//debug-specific actions when debugFlag set to TRUE
 		if (this.debugFlag == true) {
+			
 			System.out.println("DebugFlag set to TRUE! Setting debugFlag on server instance!");
 			server.setDebugFlag(true);
+			
+			System.out.println("transponderTCP| Listening for connection at: " + this.serverSocket.getInetAddress() +"\n");
+			System.out.println("transponderTCP| Payload set to: \n" + serverPayload.toString());
 		}
+
 
 		Thread serverThread = new Thread(server);
 
@@ -190,7 +241,7 @@ public class TransponderTCP implements Runnable{
 			this.mode = 2;
 		}
 
-		for (tClient currClient : this.tClientSet) {
+		for (tClientTCP currClient : this.tClientSet) {
 
 			// Debug flag condition actions
 			if (this.debugFlag == true) {
@@ -209,7 +260,7 @@ public class TransponderTCP implements Runnable{
 			// Create a new client thread, change thread name, add to
 			// clientThread hashSet
 			Thread addedThread = new Thread(currClient);
-			addedThread.setName("tClient " + currClient.getRemoteAddrString());
+			addedThread.setName("tClient| Connecting to IP address: " + currClient.getRemoteAddrString());
 			this.clientThreads.add(addedThread);
 			addedThread.start();
 		}
@@ -224,9 +275,9 @@ public class TransponderTCP implements Runnable{
 		}
 		
 		//Standard re-initialization block, to clear out clients/servers between mode switches
-		tClientSet = new HashSet<tClient>();
+		tClientSet = new HashSet<tClientTCP>();
 		clientThreads = new HashSet<Thread>();
-		tServerSet = new HashSet<tServer>();
+		tServerSet = new HashSet<tServerTCP>();
 		serverThreads = new HashSet<Thread>();
 		
 	}
@@ -239,25 +290,38 @@ public class TransponderTCP implements Runnable{
 	}
 
 	public void setDebugFlag(boolean flag) {
+		
 		this.debugFlag = flag;
+		
+		if(this.tServerSet != null && this.tClientSet != null) {
+			
+			for(tServerTCP currServer : this.tServerSet) {
+				currServer.setDebugFlag(flag);
+			}
+			
+			for(tClientTCP currClient : this.tClientSet) {
+				currClient.setDebugFlag(flag);
+			}
+		}
 	}
 
 	public String getStatus() {
-		String result = "Status for current TCP Transponder: \n";
+		String result = "Status for current TransponderTCP: "+ this +"\n";
+
 		if (this.mode == 0) {
-			result += "Transponder stopped!";
+			result += "Transponder stopped! \n";
 		}
 
 		if (this.mode == 1) {
 			result += "Current Mode: Server \n";
 
-			if (this.tServerSet.size() == 0) {
+			if (this.tClientSet.size() == 0) {
 				result += "No clients connected!\n";
 				result += "Server socket listening on:\n";
 				result += "ServerSocket IP:Port" + this.serverSocket.getLocalSocketAddress().toString() + "\n";
 			}
 
-			for (tServer currServer : this.tServerSet) {
+			for (tServerTCP currServer : this.tServerSet) {
 				result += currServer.getStatus() + "\n";
 			}
 		}
@@ -265,22 +329,23 @@ public class TransponderTCP implements Runnable{
 		if (this.mode == 2) {
 			result += "Current Mode: Client \n";
 
-			for (tClient currClient : this.tClientSet) {
+			for (tClientTCP currClient : this.tClientSet) {
 				result += currClient.getStatus();
 			}
 		}
 
 		if (this.tClientSet.size() > 0) {
-			for (tClient currClient : this.tClientSet) {
+			for (tClientTCP currClient : this.tClientSet) {
 				result += currClient.getStatus();
 			}
 		}
 
 		if (this.tServerSet.size() > 0) {
-			for (tServer currServer : this.tServerSet) {
+			for (tServerTCP currServer : this.tServerSet) {
 				result += currServer.getStatus();
 			}
 		}
+		
 		return result;
 	}
 }

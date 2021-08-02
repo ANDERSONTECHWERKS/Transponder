@@ -46,8 +46,8 @@ public class Tests extends TestCase{
 			testTranspClient.setDebugObject(dObj);
 			testTranspClient.run();
 
-			assertTrue(dObj.evaluatePayloadEquivalance());
-			System.out.println("dObj evaluatePayloadEquivalence result: " + dObj.evaluatePayloadEquivalance());
+			assertTrue(dObj.evaluatePayloadEquivalanceMulti());
+			System.out.println("dObj evaluatePayloadEquivalence result: " + dObj.evaluatePayloadEquivalanceMulti());
 			
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
@@ -124,7 +124,7 @@ public class Tests extends TestCase{
 			e.printStackTrace();
 		}
 
-		tServer testServer = new tServer(serverSock,serverAddr);
+		tServerTCP testServer = new tServerTCP(serverSock,serverAddr);
 		testServer.setOutgoingPayload(testPayload);
 		
 		Thread serverThread = new Thread(testServer);
@@ -137,7 +137,8 @@ public class Tests extends TestCase{
 		Socket localSock = null;
 		
 		try {
-			System.out.println("Setting client/remote address to:" + Inet4Address.getLoopbackAddress()+ ":6969  " + Inet4Address.getLoopbackAddress() + ":7000");
+			System.out.println("--testClient JUNIT Test output--\ntestClient| Server address:" + Inet4Address.getLoopbackAddress()+ ":6969  \n"
+					+ "testClient| Client Address:" + Inet4Address.getLoopbackAddress() + ":7000");
 			
 			localSock = new Socket(Inet4Address.getLoopbackAddress(),6969, Inet4Address.getLoopbackAddress(),7000);
 		} catch (UnknownHostException e) {
@@ -148,11 +149,19 @@ public class Tests extends TestCase{
 			e.printStackTrace();
 		}
 		
-		tClient testClient = new tClient(localSock);
+		tClientTCP testClient = new tClientTCP(localSock);
+		
+		testClient.setDebugFlag(true);
 		
 		Thread clientThread = new Thread(testClient);
 
 		clientThread.start();
+		
+		Payload testPayload = testClient.getPayload();
+		
+		if(testPayload instanceof Payload) {
+			System.out.println("testClient: Payload received!\n" + testPayload.toString() +"\n");
+		}
 	}
 	
 	//testServerAndClient is currently broken. Gotta think of a clever way to do this...
@@ -161,6 +170,7 @@ public class Tests extends TestCase{
 		InetSocketAddress serverAddr = null;
 		ServerSocket serverSock = null;
 		Payload testPayload = new Payload(5,"RED");
+		debugObj debugger = new debugObj(testPayload);
 
 		serverAddr = new InetSocketAddress(Inet4Address.getLoopbackAddress(),6969);
 		
@@ -172,16 +182,18 @@ public class Tests extends TestCase{
 			e.printStackTrace();
 		}
 
-		tServer testServer = new tServer(serverSock,serverAddr);
+		tServerTCP testServer = new tServerTCP(serverSock,serverAddr);
 		
 		testServer.setOutgoingPayload(testPayload);
 		testServer.setDebugFlag(true);
+		testServer.setDebugObj(debugger);
 		
 		
 		Socket localSock = null;
 		
 		try {
-			System.out.println("Setting client/remote address to:" + Inet4Address.getLoopbackAddress()+ ":6969  " + Inet4Address.getLoopbackAddress() + ":7000");
+			System.out.println("--testClient--\nServer address:" + Inet4Address.getLoopbackAddress()+ ":6969  \n"
+					+ "Client Address:" + Inet4Address.getLoopbackAddress() + ":7000");
 			
 			localSock = new Socket(Inet4Address.getLoopbackAddress(),6969, Inet4Address.getLoopbackAddress(),7000);
 		} catch (UnknownHostException e) {
@@ -192,13 +204,22 @@ public class Tests extends TestCase{
 			e.printStackTrace();
 		}
 		
-		tClient testClient = new tClient(localSock);
+		tClientTCP testClient = new tClientTCP(localSock);
+		
 		testClient.setDebugFlag(true);
+		testClient.setDebugObj(debugger);
+		
 		Thread serverThread = new Thread(testServer);
 		Thread clientThread = new Thread(testClient);
 		
 		serverThread.start();
 		clientThread.start();
+
+		boolean payloadsMatch = debugger.evaluatePayloadEquivalanceMulti();
+
+		System.out.println("testClientAndServer| debugObj payloads match? :" + payloadsMatch);
+		
+		assertTrue(payloadsMatch);
 	}
 	
 	@Test

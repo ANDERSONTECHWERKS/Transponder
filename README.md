@@ -23,3 +23,20 @@ Contains the following objects and behavior:
     
 - debugObj: Object used for debugging the input / output of tServers and tClients.
     Intended to be passed into the Transponder object. 
+    
+    -- JSHELL INSTRUCTIONS --
+    * This assumes that you have a JAR form of TransponderTCP available in a directory.
+    * You can generate a JAR through your favorite IDE. I will start posting JAR's soon.
+    
+    Begin Jshell instructions:
+	1) Navigate to director with TransponderTCP.jar
+	2) In terminal, execute:
+	# jshell --class-path TransponderTCP.jar
+
+	3) In jshell, execute the following declarations:
+	 > import transponderTCP.*;
+	 > ControllerMenu test = new ControllerMenu();
+
+	4) Follow prompts to setup a client or server, as selected.
+
+	NOTE: This is obvious, but you will have to instantiate two different jshell processes running two different ControllerMenu instances at the same time! One server, one client!
