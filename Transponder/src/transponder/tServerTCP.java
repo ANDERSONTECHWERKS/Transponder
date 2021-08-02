@@ -8,6 +8,7 @@ import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.io.OutputStream;
 import java.net.InetSocketAddress;
+import java.net.ServerSocket;
 import java.net.Socket;
 import java.net.SocketAddress;
 import java.net.SocketException;
@@ -180,6 +181,36 @@ public class tServerTCP implements Runnable {
 			e.printStackTrace();
 		}
 	}
+	
+	public void setLocalAddr(SocketAddress local) {
+		this.localAddrTCP = local;
+	}
+	
+	public void buildServerSocket(String localAddr, int localPort) {
+		
+
+		this.localAddrTCP = new InetSocketAddress(localAddr,localPort);
+		
+		ServerSocket serverSock = null;
+		
+		try {
+			 serverSock = new ServerSocket();
+			 serverSock.setReuseAddress(true);
+			 serverSock.bind(localAddrTCP);
+			 
+		} catch (IOException e1) {
+			// TODO Auto-generated catch block
+			e1.printStackTrace();
+		}
+		
+		// Listen for connection
+		try {
+			this.remoteSocketTCP = serverSock.accept();
+		} catch (IOException e1) {
+			// TODO Auto-generated catch block
+			e1.printStackTrace();
+		}
+	}
 
 	public void createInputStreams() {
 		// Create inputStreams
@@ -239,6 +270,22 @@ public class tServerTCP implements Runnable {
 	}
 	
 	public void preflight_run() {
+		// If our object has a local address, but no remote socket:
+		// create a serverSocket and listen
+		if(this.remoteSocketTCP == null && this.localAddrTCP != null) {
+			
+			ServerSocket servSock = null;
+			
+			try {
+				servSock = new ServerSocket();
+				servSock.setReuseAddress(true);
+				servSock.bind(this.localAddrTCP);
+				this.remoteSocketTCP = servSock.accept();
+			} catch (IOException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+		}
 		
 		// If our address fields are assigned, but we are not connected - connect!
 		if(this.localAddrTCP != null && this.remoteAddrTCP != null && !this.remoteSocketTCP.isConnected()) {

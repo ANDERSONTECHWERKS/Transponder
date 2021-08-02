@@ -325,26 +325,19 @@ public class Tests extends TestCase{
 
 		for(int i = 0; i < 10; i++) {
 			
-			Socket remoteSocket = null;
-			
 			int incPort = clientAddr.getPort() + i;
 			
-			try {
-				
-				remoteSocket = new Socket(serverAddr.getAddress(),serverAddr.getPort(),clientAddr.getAddress(),incPort);
-				
-			} catch (IOException e) {
-				
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-				
-			}
-			
-			tClientTCP newClient = new tClientTCP(remoteSocket);
-			
-			newClient.generateClientSignOn(clientAddr.getAddress(), serverAddr.getAddress());
-			newClient.generateClientSignOff(clientAddr.getAddress(), serverAddr.getAddress());
+			InetSocketAddress clientAddrInc = new InetSocketAddress(InetAddress.getLoopbackAddress(),incPort);
 
+			tClientTCP newClient = new tClientTCP();
+			
+			newClient.setLocalSocketAddress(clientAddrInc);
+			newClient.setRemoteSocketAddress(serverAddr);
+			
+			newClient.generateClientSignOn(clientAddrInc.getAddress(), serverAddr.getAddress());
+			newClient.generateClientSignOff(clientAddrInc.getAddress(), serverAddr.getAddress());
+			newClient.setDebugFlag(true);
+			
 			clientSet.add(newClient);
 			
 		}
@@ -353,6 +346,18 @@ public class Tests extends TestCase{
 			Thread newThread = new Thread(currClient);
 			clientThreadSet.add(newThread);
 		}
+		
+		Payload testPayload = new Payload(7,"SIGMA");
+		tServerTCP testServ = new tServerTCP();
+		
+		testServ.setLocalAddr(serverAddr);
+		testServ.setOutgoingPayload(testPayload);
+		testServ.setDebugFlag(true);
+		
+		
+		Thread servThread = new Thread(testServ);
+		
+		servThread.start();
 		
 		for(Thread currThread : clientThreadSet) {
 			currThread.start();
