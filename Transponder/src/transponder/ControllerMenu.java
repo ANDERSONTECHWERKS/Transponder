@@ -174,6 +174,7 @@ public class ControllerMenu {
 			switch (userChoice) {
 
 			case 1:
+
 				// case 1: Transponder Status
 
 				// Condition where currTransponder has been cleared
@@ -183,7 +184,7 @@ public class ControllerMenu {
 
 				} else {
 
-					System.out.println("---THREADSTATUS---");
+					System.out.println("---THREAD STATUS---");
 
 					// If transponderThread is null, consider that stopped
 					if (this.transponderThread == null) {
@@ -207,6 +208,7 @@ public class ControllerMenu {
 				break;
 
 			case 2:
+
 				// case 2: Configure Transponder
 
 				if (this.currTransponder == null) {
@@ -310,12 +312,15 @@ public class ControllerMenu {
 					// set stopFlag false, since we check for a new transponderThread instance.
 					// Start thread.
 					this.stopFlag = false;
+					
 					this.transponderThread.start();
 
 					// debug output if debugFlag set to TRUE
 					if (this.debugFlag == true) {
+						
 						System.out.println("ControllerMenu| Thread information:\n Thread state: "
 								+ this.transponderThread.getState().toString());
+						
 					}
 
 				}
@@ -326,10 +331,12 @@ public class ControllerMenu {
 				// case 4: Stop Transponder
 
 				if (this.currTransponder == null) {
+					
 					System.out.println("Transponder not started! Nothing to stop!");
 					System.out.println("Please Configure and Start Transponder!");
 
 				} else if (this.currTransponder instanceof TransponderTCP) {
+					
 					this.currTransponder.stop();
 					this.currTransponder = null;
 				}
@@ -377,12 +384,15 @@ public class ControllerMenu {
 		// Create relevant variables for each
 
 		System.out.println("Enter Server Address:\n");
+		
 		String serverInput = keyboardInput.next();
 		
 		System.out.println("Enter Server Socket:\n");
+		
 		portInput = keyboardInput.nextInt();
 		
 		System.out.println("Enter connection backlog value on local server:\n");
+		
 		backlogInput = keyboardInput.nextInt();
 
 		// Create InetAddress object using constructor

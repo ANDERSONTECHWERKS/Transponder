@@ -319,7 +319,28 @@ public class Tests extends TestCase{
 	public void testMultipleClients() {
 		InetSocketAddress serverAddr = new InetSocketAddress(InetAddress.getLoopbackAddress(),6969);
 		InetSocketAddress clientAddr = new InetSocketAddress(InetAddress.getLoopbackAddress(),7000);
+		ServerSocket servSock = null;
+		
+		try {
+			servSock = new ServerSocket();
+			servSock.bind(serverAddr);
+			
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		
+		TransponderTCP testTranspTCP = new TransponderTCP(servSock);
 
+		Payload testPayload = new Payload(7,"SIGMA");
+
+		testTranspTCP.setDebugFlag(true);
+		testTranspTCP.setInitialServerPayload(testPayload);
+		
+		Thread transpThread = new Thread(testTranspTCP);
+		
+		transpThread.start();
+		
 		HashSet<tClientTCP> clientSet = new HashSet<tClientTCP>();
 		HashSet<Thread> clientThreadSet = new HashSet<Thread>();
 
@@ -346,19 +367,7 @@ public class Tests extends TestCase{
 			Thread newThread = new Thread(currClient);
 			clientThreadSet.add(newThread);
 		}
-		
-		Payload testPayload = new Payload(7,"SIGMA");
-		tServerTCP testServ = new tServerTCP();
-		
-		testServ.setLocalAddr(serverAddr);
-		testServ.setOutgoingPayload(testPayload);
-		testServ.setDebugFlag(true);
-		
-		
-		Thread servThread = new Thread(testServ);
-		
-		servThread.start();
-		
+						
 		for(Thread currThread : clientThreadSet) {
 			currThread.start();
 		}

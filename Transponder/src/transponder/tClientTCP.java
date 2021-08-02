@@ -446,6 +446,13 @@ public class tClientTCP implements Runnable {
 				}
 			}
 		}
+		
+		// Generate the clientSON and clientSOFF objects
+		this.clientSON = this.generateClientSignOn(this.clientSocket.getLocalAddress(),
+				this.clientSocket.getInetAddress());
+		
+		this.clientSOFF = this.generateClientSignOff(this.clientSocket.getLocalAddress(),
+				this.clientSocket.getInetAddress());
 	}
 
 	// Closes streams, and the clientSocketRemote
@@ -560,13 +567,6 @@ public class tClientTCP implements Runnable {
 		// Create inputStreams and begin receiving
 		this.createInputStreams();
 
-		// Generate the clientSON and clientSOFF objects
-		this.clientSON = this.generateClientSignOn(this.clientSocket.getLocalAddress(),
-				this.clientSocket.getInetAddress());
-		
-		this.clientSOFF = this.generateClientSignOff(this.clientSocket.getLocalAddress(),
-				this.clientSocket.getInetAddress());
-
 		// Perform clientSignOn
 		// When clientSignOn is transmitted, assume that payloads are being transmitted.
 		this.performSignOn();
@@ -587,13 +587,16 @@ public class tClientTCP implements Runnable {
 		
 		// Finally, send clientSignOff object
 		this.performSignOff();
+
 		this.closeIO();
 	}
 
 	public void stop() {
-		
+
 		this.stopFlag = true;
+
 		this.performSignOff();
+
 		this.closeIO();
 	}
 

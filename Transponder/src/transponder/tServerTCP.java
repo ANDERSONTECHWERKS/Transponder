@@ -41,9 +41,9 @@ public class tServerTCP implements Runnable {
 	// tServer instance without serverSocket reference.
 	// DEBUG USE ONLY!
 	public tServerTCP() {
-		//null
+		// null
 	}
-	
+
 	// tServer instance without parent reference.
 	// DEBUG USE ONLY!
 	public tServerTCP(Socket serverSocket) {
@@ -52,6 +52,15 @@ public class tServerTCP implements Runnable {
 		this.remoteAddrTCP = serverSocket.getRemoteSocketAddress();
 
 		this.remoteSocketTCP = serverSocket;
+	}
+
+	// tServer instance with parent reference.
+	public tServerTCP(Socket serverSocket, TransponderTCP transponderParent) {
+		
+		this.localAddrTCP = serverSocket.getLocalSocketAddress();
+		this.remoteAddrTCP = serverSocket.getRemoteSocketAddress();
+		
+		this.parentTransponder = transponderParent;
 	}
 
 	// isPayloadPresent returns a boolean TRUE if the outgoingPayload
@@ -108,6 +117,7 @@ public class tServerTCP implements Runnable {
 					clientSignOn inpCliSignOn = (clientSignOn) input;
 
 					if (this.debugFlag == true) {
+
 						System.out.println("tServer| Received clientSignOn object!\n");
 						System.out.println("tServer| inpClientSignOn object received in serviceStart() method!\n");
 
@@ -119,11 +129,13 @@ public class tServerTCP implements Runnable {
 					clientSignOff inpCliSignOff = (clientSignOff) input;
 
 					if (this.debugFlag == true) {
+
 						System.out.println("tServer| Received clientSignOff class! Closing sockets! \n");
 						System.out.println("tServer| clientSignOff object received in serviceStart() method!\n");
 
 					}
-
+					// Once we recieve clientSignOff object, stop this tServer. 
+					// We should still be listening at the TransponderTCP-level.
 					this.stopFlag = true;
 				}
 			}
@@ -162,17 +174,17 @@ public class tServerTCP implements Runnable {
 	public void setOutgoingPayload(Payload payload) {
 		// debug output for when debugFlag set to TRUE
 		if (this.debugFlag == true) {
-			System.out.println("tServer setting outgoingPayload to" + payload.toString() + "\n");
+			System.out.println("tServer setting outgoing Payload to: \n" + payload.toString() + "\n");
 		}
 
 		this.outgoingPayload = payload;
 	}
-	
+
 	public void buildSocket(String localAddr, int localPort, String remoteAddr, int remotePort) {
-		this.remoteAddrTCP = new InetSocketAddress(remoteAddr,remotePort);
-		this.localAddrTCP = new InetSocketAddress(localAddr,localPort);
+		this.remoteAddrTCP = new InetSocketAddress(remoteAddr, remotePort);
+		this.localAddrTCP = new InetSocketAddress(localAddr, localPort);
 		this.remoteSocketTCP = new Socket();
-		
+
 		try {
 			this.remoteSocketTCP.bind(localAddrTCP);
 			this.remoteSocketTCP.setReuseAddress(true);
@@ -181,28 +193,27 @@ public class tServerTCP implements Runnable {
 			e.printStackTrace();
 		}
 	}
-	
+
 	public void setLocalAddr(SocketAddress local) {
 		this.localAddrTCP = local;
 	}
-	
-	public void buildServerSocket(String localAddr, int localPort) {
-		
 
-		this.localAddrTCP = new InetSocketAddress(localAddr,localPort);
-		
+	public void buildServerSocket(String localAddr, int localPort) {
+
+		this.localAddrTCP = new InetSocketAddress(localAddr, localPort);
+
 		ServerSocket serverSock = null;
-		
+
 		try {
-			 serverSock = new ServerSocket();
-			 serverSock.setReuseAddress(true);
-			 serverSock.bind(localAddrTCP);
-			 
+			serverSock = new ServerSocket();
+			serverSock.setReuseAddress(true);
+			serverSock.bind(localAddrTCP);
+
 		} catch (IOException e1) {
 			// TODO Auto-generated catch block
 			e1.printStackTrace();
 		}
-		
+
 		// Listen for connection
 		try {
 			this.remoteSocketTCP = serverSock.accept();
@@ -268,14 +279,14 @@ public class tServerTCP implements Runnable {
 		}
 
 	}
-	
+
 	public void preflight_run() {
 		// If our object has a local address, but no remote socket:
 		// create a serverSocket and listen
-		if(this.remoteSocketTCP == null && this.localAddrTCP != null) {
-			
+		if (this.remoteSocketTCP == null && this.localAddrTCP != null) {
+
 			ServerSocket servSock = null;
-			
+
 			try {
 				servSock = new ServerSocket();
 				servSock.setReuseAddress(true);
@@ -286,10 +297,10 @@ public class tServerTCP implements Runnable {
 				e.printStackTrace();
 			}
 		}
-		
+
 		// If our address fields are assigned, but we are not connected - connect!
-		if(this.localAddrTCP != null && this.remoteAddrTCP != null && !this.remoteSocketTCP.isConnected()) {
-			
+		if (this.localAddrTCP != null && this.remoteAddrTCP != null && !this.remoteSocketTCP.isConnected()) {
+
 			try {
 				this.remoteSocketTCP.connect(remoteAddrTCP);
 			} catch (IOException e) {
@@ -432,18 +443,18 @@ public class tServerTCP implements Runnable {
 
 		// Debugging operations
 		if (this.debugFlag == true) {
-			
+
 			if (this.debugObject != null && this.debugObject instanceof debugObj) {
-				
+
 				this.debugPayloadIntegrity();
-				System.out.println("tServer| debugPayloadIntegrity ran...");				
+				System.out.println("tServer| debugPayloadIntegrity ran...");
 			}
 			System.out.println("tServer| Running pre-flights...");
 		}
-		
+
 		// Run preflights
 		this.preflight_run();
-		
+
 		// Handshake_1: Create InputStreams
 		this.createInputStreams();
 
@@ -515,7 +526,7 @@ public class tServerTCP implements Runnable {
 
 		return this.localAddrTCP.toString();
 	}
-	
+
 	public int getPayloadHash() {
 
 		if (this.outgoingPayload != null) {
