@@ -1,4 +1,4 @@
-package transponderTCP;
+package transponder;
 
 import java.io.IOException;
 import java.net.InetAddress;
@@ -161,11 +161,11 @@ public class ControllerMenu {
 
 			System.out.println("---COMMANDS---");
 
-			String[] commandList = { "1. Transponder Status", "2. Configure Transponder", "3. Start Transponder",
+			String[] menu = { "1. Transponder Status", "2. Configure Transponder", "3. Start Transponder",
 					"4. Stop Transponder", "5. Exit" };
 
 			// Iterate through options, printing each out.
-			for (String currString : commandList) {
+			for (String currString : menu) {
 				System.out.println(currString);
 			}
 
@@ -376,13 +376,13 @@ public class ControllerMenu {
 		// Prompt user for server address and socket,
 		// Create relevant variables for each
 
-		System.out.println("Server Address:\n");
+		System.out.println("Enter Server Address:\n");
 		String serverInput = keyboardInput.next();
 		
-		System.out.println("Server Socket:\n");
+		System.out.println("Enter Server Socket:\n");
 		portInput = keyboardInput.nextInt();
 		
-		System.out.println("Connection backlog value on local server:\n");
+		System.out.println("Enter connection backlog value on local server:\n");
 		backlogInput = keyboardInput.nextInt();
 
 		// Create InetAddress object using constructor
@@ -403,7 +403,7 @@ public class ControllerMenu {
 		// Set socket options here
 		// TODO: Future feature: Method that sets socket options
 		try {
-			InetSocketAddress serverAddr = new InetSocketAddress(InetAddress.getByName(serverInput),portInput);
+			InetSocketAddress serverAddr = new InetSocketAddress(serverAddress,portInput);
 			
 			serverSocket = new ServerSocket();
 			serverSocket.setReuseAddress(true);
@@ -460,7 +460,7 @@ public class ControllerMenu {
 		// we want to send data from, including the port number
 		// Store as clientLocalAddr and clientLocalSocket.
 
-		System.out.println("Client IP Address: \n");
+		System.out.println("Enter This Client's IP Address: \n");
 
 		try {
 			clientLocalAddr = InetAddress.getByName(userInput.next());
@@ -468,20 +468,20 @@ public class ControllerMenu {
 			e.printStackTrace();
 		}
 
-		System.out.println("Client Socket:\n");
+		System.out.println("Enter Client Socket:\n");
 
 		clientLocalSocket = userInput.nextInt();
 
 		// Request the address for the remote machine that we want
 		// to connect to, store as clientRemoteAddr.
-		System.out.println("Remote Server IP Address:\n");
+		System.out.println("Enter Remote Server IP Address:\n");
 		try {
 			clientRemoteAddr = InetAddress.getByName(userInput.next());
 		} catch (UnknownHostException e) {
 			e.printStackTrace();
 		}
 
-		System.out.println("Remote Server Socket:\n");
+		System.out.println("Enter Remote Server Socket:\n");
 		clientRemoteSocket = userInput.nextInt();
 
 		// Attempt creating a new Socket object using clientRemoteaddr,
@@ -498,7 +498,7 @@ public class ControllerMenu {
 
 	public boolean promptDebugFlag(Scanner userInput) {
 
-		System.out.println("Debug mode? \n");
+		System.out.println("Debug mode? Select:\n");
 		System.out.println("1 - ON\n2 - OFF");
 
 		int response = userInput.nextInt();

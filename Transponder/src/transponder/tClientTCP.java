@@ -1,4 +1,4 @@
-package transponderTCP;
+package transponder;
 
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
@@ -7,7 +7,6 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
-import java.io.OutputStream;
 import java.net.InetAddress;
 import java.net.Socket;
 import java.net.SocketAddress;
@@ -81,7 +80,7 @@ public class tClientTCP implements Runnable {
 	// addresses assigned)
 	// If this isn't happening: Make it happen at the ControllerMenu /
 	// TransponderTCP level!
-	// Includes reference to parent transponderTCP object for callbacks!
+	// Includes reference to parent transponder object for callbacks!
 	tClientTCP(Socket localSocket, TransponderTCP parent) {
 		// Assign socket to field
 		this.clientSocketLocal = localSocket;
@@ -442,6 +441,9 @@ public class tClientTCP implements Runnable {
 
 				e.printStackTrace();
 
+			} catch (NullPointerException e) {
+				
+				e.printStackTrace();
 			}
 		}
 	}
@@ -565,6 +567,18 @@ public class tClientTCP implements Runnable {
 		this.closeIO();
 	}
 
+	public String getLocalAddrString() {
+		
+		if (this.socketLocalAddr != null) {
+			
+			return this.socketLocalAddr.toString();
+			
+		} else {
+			
+			throw new IllegalStateException("tClient| No socketLocalAddr set! Unable to return string! \n");
+		}
+	}
+	
 	public String getRemoteAddrString() {
 		
 		if (this.socketRemoteAddr != null) {
@@ -630,7 +644,7 @@ public class tClientTCP implements Runnable {
 		status += "Payload status: \n";
 		
 		if (this.incomingPayload == null) {
-			status += "Payload not received! Currently: null \n";
+			status += "tClient| incomingPayload Currently null!\n";
 		} 
 		
 		if (this.incomingPayload instanceof Payload) {

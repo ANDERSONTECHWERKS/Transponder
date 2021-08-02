@@ -1,12 +1,10 @@
-package transponderTCP;
+package transponder;
 
 import java.io.IOException;
-import java.net.InetAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.net.SocketAddress;
 import java.net.SocketException;
-import java.util.HashMap;
 import java.util.HashSet;
 
 public class TransponderTCP implements Runnable, Transponder{
@@ -19,9 +17,7 @@ public class TransponderTCP implements Runnable, Transponder{
 	private HashSet<Thread> clientThreads = new HashSet<Thread>();
 	private HashSet<tServerTCP> tServerSet = new HashSet<tServerTCP>();
 	private HashSet<Thread> serverThreads = new HashSet<Thread>();
-	
-	private tServerTCP tServerSingleton = null;
-	
+		
 	private SocketAddress tServerSockAddr = null;
 	
 	private ServerSocket serverSocket = null;
@@ -31,6 +27,8 @@ public class TransponderTCP implements Runnable, Transponder{
 	private debugObj debugObj = null;
 	
 	private boolean debugFlag = false;
+	
+	private boolean stopFlag = false;
 
 	// BE ADVISED: Constructors without localController parameters are intended for debug ONLY!
 	public TransponderTCP(int mode) {
@@ -115,7 +113,11 @@ public class TransponderTCP implements Runnable, Transponder{
 
 		if (this.mode == 1) {
 			if (this.serverSocket != null) {
-				this.confMode1();
+				
+				// listen-loop
+				while(this.stopFlag == false) {
+					this.confMode1();
+				}
 			}
 		}
 
@@ -151,19 +153,35 @@ public class TransponderTCP implements Runnable, Transponder{
 		}
 	}
 	
+	public void setServerOpts(String args[], ServerSocket sock) {
+		// For the moment, args[] does nothing.
+		// We will use this block to set options as we
+		// develop and troubleshoot
+
+		try {
+			
+			sock.setReuseAddress(true);
+			
+		} catch (SocketException e) {
+			System.out.println("tServer| SocketException occured! Unable to setServerOpts()!");
+			e.printStackTrace();
+		}
+
+	}
+	
 	public void setControllerMenu(ControllerMenu localMenu) {
 		this.localController = localMenu;
 	}
 
-	public void updateServerPayload(Payload payload) {
-		if (this.tServerSingleton != null) {
-			this.tServerSingleton.setOutgoingPayload(payload);
-		}
+	public void setServerPayload(Payload payload) {
+		this.serverPayload = payload;
 	}
 
 	// This method binds a specified tClient to the parameter endpoint
 	public void clientBindRemoteSocks(tClientTCP client, SocketAddress remoteEndpoint) {
+		
 		for (tClientTCP curr : this.tClientSet) {
+			
 			if (curr.equals(client)) {
 				curr.setRemoteSocketAddress(remoteEndpoint);
 			}
@@ -188,12 +206,7 @@ public class TransponderTCP implements Runnable, Transponder{
 		if (this.mode != 1) {
 			this.mode = 1;
 		}
-		
-		//Standard re-initialization block, to clear out clients/servers between mode switches
-		tClientSet = new HashSet<tClientTCP>();
-		clientThreads = new HashSet<Thread>();
-		tServerSet = new HashSet<tServerTCP>();
-		serverThreads = new HashSet<Thread>();
+
 
 		if (this.serverSocket == null) {
 			throw new IllegalStateException("serverSocket not set!");
@@ -204,31 +217,46 @@ public class TransponderTCP implements Runnable, Transponder{
 		}
 
 
+		
 
-		tServerTCP server = new tServerTCP(this.serverSocket,this.tServerSockAddr,this);
-		server.setOutgoingPayload(serverPayload);
+
 		
 		//debug-specific actions when debugFlag set to TRUE
 		if (this.debugFlag == true) {
 			
 			System.out.println("DebugFlag set to TRUE! Setting debugFlag on server instance!");
-			server.setDebugFlag(true);
-			
-			System.out.println("transponderTCP| Listening for connection at: " + this.serverSocket.getInetAddress() +"\n");
-			System.out.println("transponderTCP| Payload set to: \n" + serverPayload.toString());
+			System.out.println("transponder| Listening for connection at: " + this.serverSocket.getInetAddress() +"\n");
+			System.out.println("transponder| Payload set to: \n" + serverPayload.toString());
 		}
 
-
+		tServerTCP server = null;
+		
+		// Listen for connection on serverSocket
+		try {
+			server = new tServerTCP(this.serverSocket.accept());
+		} catch (IOException e) {
+			System.out.println("transponder| Failed to listen on socket!");
+			e.printStackTrace();
+		}
+		
+		if(this.debugFlag == true) {
+			server.setDebugFlag(true);
+		}
+		
+		server.setOutgoingPayload(serverPayload);
+		
 		Thread serverThread = new Thread(server);
 
-		serverThread.setName("tServer " + server.getLocalAddr());
+		serverThread.setName("tServer -" + server.getLocalAddr());
+
 		this.tServerSet.add(server);
+
 		this.serverThreads.add(serverThread);
 
 		serverThread.start();
 
 		if (this.debugFlag == true) {
-			System.out.println("tServer Instance " + serverThread.getName() + " created!");
+			System.out.println("tServer Instance " + serverThread.getName() + " started!");
 		}
 	}
 
@@ -313,39 +341,32 @@ public class TransponderTCP implements Runnable, Transponder{
 		}
 
 		if (this.mode == 1) {
-			result += "Current Mode: Server \n";
+			result += "TransponderTCP Mode: Server \n";
 
 			if (this.tClientSet.size() == 0) {
 				result += "No clients connected!\n";
 				result += "Server socket listening on:\n";
-				result += "ServerSocket IP:Port" + this.serverSocket.getLocalSocketAddress().toString() + "\n";
+				result +=  this.serverSocket.getLocalSocketAddress().toString() + "\n";
+			} else {
+	
+				result += "Connected Clients:\n";
+		
+				int counter = 0;
+				for(tServerTCP currServer : this.tServerSet) {
+					counter++;
+					result += counter + currServer.getRemoteAddr().toString() + "\n";
+				}
 			}
 
-			for (tServerTCP currServer : this.tServerSet) {
-				result += currServer.getStatus() + "\n";
-			}
 		}
 
 		if (this.mode == 2) {
-			result += "Current Mode: Client \n";
+			result += "TransponderTCP Mode: Client \n";
 
 			for (tClientTCP currClient : this.tClientSet) {
-				result += currClient.getStatus();
+				result += currClient.getStatus() +"\n";
 			}
 		}
-
-		if (this.tClientSet.size() > 0) {
-			for (tClientTCP currClient : this.tClientSet) {
-				result += currClient.getStatus();
-			}
-		}
-
-		if (this.tServerSet.size() > 0) {
-			for (tServerTCP currServer : this.tServerSet) {
-				result += currServer.getStatus();
-			}
-		}
-		
 		return result;
 	}
 }
