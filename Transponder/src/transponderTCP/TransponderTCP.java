@@ -10,17 +10,26 @@ import java.util.HashMap;
 import java.util.HashSet;
 
 public class TransponderTCP implements Runnable, Transponder{
+	
 	private int mode;
+	
 	private ControllerMenu localController = null;
+	
 	private HashSet<tClientTCP> tClientSet = new HashSet<tClientTCP>();
 	private HashSet<Thread> clientThreads = new HashSet<Thread>();
 	private HashSet<tServerTCP> tServerSet = new HashSet<tServerTCP>();
 	private HashSet<Thread> serverThreads = new HashSet<Thread>();
+	
 	private tServerTCP tServerSingleton = null;
+	
 	private SocketAddress tServerSockAddr = null;
+	
 	private ServerSocket serverSocket = null;
+	
 	private Payload serverPayload = null;
+	
 	private debugObj debugObj = null;
+	
 	private boolean debugFlag = false;
 
 	// BE ADVISED: Constructors without localController parameters are intended for debug ONLY!
@@ -281,11 +290,23 @@ public class TransponderTCP implements Runnable, Transponder{
 	}
 
 	public void setDebugFlag(boolean flag) {
+		
 		this.debugFlag = flag;
+		
+		if(this.tServerSet != null && this.tClientSet != null) {
+			
+			for(tServerTCP currServer : this.tServerSet) {
+				currServer.setDebugFlag(flag);
+			}
+			
+			for(tClientTCP currClient : this.tClientSet) {
+				currClient.setDebugFlag(flag);
+			}
+		}
 	}
 
 	public String getStatus() {
-		String result = "Status for current TransponderTCP: \n";
+		String result = "Status for current TransponderTCP: "+ this +"\n";
 
 		if (this.mode == 0) {
 			result += "Transponder stopped! \n";
@@ -324,6 +345,7 @@ public class TransponderTCP implements Runnable, Transponder{
 				result += currServer.getStatus();
 			}
 		}
+		
 		return result;
 	}
 }

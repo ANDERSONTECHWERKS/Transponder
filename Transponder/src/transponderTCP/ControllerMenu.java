@@ -9,6 +9,7 @@ import java.net.UnknownHostException;
 import java.util.Scanner;
 
 public class ControllerMenu {
+
 	private static ControllerMenu mainMenu = null;
 	private int mode = 0;
 	private TransponderTCP currTransponder = null;
@@ -18,28 +19,38 @@ public class ControllerMenu {
 	private Thread transponderThread = null;
 
 	public ControllerMenu() {
+
 		if (this.inputScanner == null) {
+
 			this.inputScanner = new Scanner(System.in);
+
 		}
+
 		this.mode = this.promptModeSetting(inputScanner);
+
 		// Mode 1 is server-only
 		if (this.mode == 1) {
+
 			ServerSocket mode1ServSock = this.promptServerSocket(inputScanner);
+
 			this.currTransponder = new TransponderTCP(1, mode1ServSock, mode1ServSock.getLocalSocketAddress(), this);
 
 			// After creating the transponder,
 			// prompt and initialize the payload.
 			Payload initPayload = this.promptPayload(inputScanner);
+
 			this.currTransponder.setInitialServerPayload(initPayload);
 
 			// Debug prompt and set
 			this.debugFlag = this.promptDebugFlag(inputScanner);
+
 			if (this.debugFlag == true) {
 				this.currTransponder.setDebugFlag(true);
 			}
 
 			// Create Transponder thread assign to transponderThread field
 			Thread transponderThread = new Thread(this.currTransponder);
+
 			this.transponderThread = transponderThread;
 
 			// Set this object to be the static mainMenu
@@ -50,17 +61,23 @@ public class ControllerMenu {
 
 		// Mode 2 is client-only
 		if (this.mode == 2) {
+
 			Socket mode2Sock = this.promptClientSocket(inputScanner);
+
 			this.currTransponder = new TransponderTCP(2, mode2Sock, mode2Sock.getRemoteSocketAddress());
 
 			// Debug prompt and set
 			this.debugFlag = this.promptDebugFlag(inputScanner);
+
 			if (this.debugFlag == true) {
+
 				this.currTransponder.setDebugFlag(true);
+
 			}
 
 			// Create Transponder thread assign to transponderThread field
 			Thread transponderThread = new Thread(this.currTransponder);
+
 			this.transponderThread = transponderThread;
 
 			// Set this object to be the static mainMenu
@@ -72,21 +89,27 @@ public class ControllerMenu {
 
 	// This constructor intended for testing purposes. May not be updated regularly!
 	public ControllerMenu(Scanner altScanner) {
+
 		this.inputScanner = altScanner;
 		this.mode = this.promptModeSetting(altScanner);
+
 		// Mode 1 is server-only
 		if (this.mode == 1) {
+
 			// Create Server socket, use it in the constructor for currTransponder
 			ServerSocket mode1ServSock = this.promptServerSocket(this.inputScanner);
+
 			this.currTransponder = new TransponderTCP(1, mode1ServSock, mode1ServSock.getLocalSocketAddress(), this);
 
 			// After creating the transponder,
 			// prompt and initialize the payload.
 			Payload initPayload = this.promptPayload(inputScanner);
+
 			this.currTransponder.setInitialServerPayload(initPayload);
 
 			// Debug prompt and set
 			this.debugFlag = this.promptDebugFlag(inputScanner);
+
 			if (this.debugFlag == true) {
 				this.currTransponder.setDebugFlag(true);
 			}
@@ -135,7 +158,9 @@ public class ControllerMenu {
 
 		// TODO: Fix menu object IAW their related menu items
 		while (stopFlag == false) {
+
 			System.out.println("---COMMANDS---");
+
 			String[] commandList = { "1. Transponder Status", "2. Configure Transponder", "3. Start Transponder",
 					"4. Stop Transponder", "5. Exit" };
 
@@ -153,11 +178,32 @@ public class ControllerMenu {
 
 				// Condition where currTransponder has been cleared
 				if (this.currTransponder == null) {
+
 					System.out.println("Transponder Stopped!");
+
 				} else {
+
+					System.out.println("---THREADSTATUS---");
+
+					// If transponderThread is null, consider that stopped
+					if (this.transponderThread == null) {
+						System.out.println("Transponder Stopped!");
+					}
+
+					if (this.transponderThread.getState().equals(Thread.State.RUNNABLE)) {
+						System.out.println("Transponder Thread is running!");
+						
+					} else if (this.transponderThread.getState().equals(Thread.State.BLOCKED)) {
+						System.out.println("Transponder Thread is blocking!");
+						
+					} else {
+						System.out.println("Transponder Thread state:" + this.transponderThread.getState().toString());
+					}
+
 					// If currTransponder is present: Get the status
 					System.out.println(this.currTransponder.getStatus());
 				}
+
 				break;
 
 			case 2:
@@ -172,6 +218,7 @@ public class ControllerMenu {
 					// designed this better...
 
 					this.mode = this.promptModeSetting(inputScanner);
+
 					// Mode 1 is server-only
 					if (this.mode == 1) {
 
@@ -191,12 +238,16 @@ public class ControllerMenu {
 
 						// Set debug TRUE, if applicable
 						if (this.debugFlag == true) {
+
 							this.currTransponder.setDebugFlag(true);
+
 						}
 
 						// Set debug FALSE, if applicable
 						if (this.debugFlag == false) {
+
 							this.currTransponder.setDebugFlag(false);
+
 						}
 					}
 
@@ -213,12 +264,16 @@ public class ControllerMenu {
 
 						// Set debug TRUE, if applicable
 						if (this.debugFlag == true) {
+
 							this.currTransponder.setDebugFlag(true);
+
 						}
 
 						// Set debug FALSE, if applicable
 						if (this.debugFlag == false) {
+
 							this.currTransponder.setDebugFlag(false);
+
 						}
 					}
 
@@ -259,8 +314,8 @@ public class ControllerMenu {
 
 					// debug output if debugFlag set to TRUE
 					if (this.debugFlag == true) {
-						System.out.println(
-								"Thread information:\n Thread state: " + this.transponderThread.getState().toString());
+						System.out.println("ControllerMenu| Thread information:\n Thread state: "
+								+ this.transponderThread.getState().toString());
 					}
 
 				}
@@ -278,6 +333,7 @@ public class ControllerMenu {
 					this.currTransponder.stop();
 					this.currTransponder = null;
 				}
+				
 				break;
 
 			case 5:
@@ -295,7 +351,6 @@ public class ControllerMenu {
 
 				if (this.currTransponder != null) {
 					this.currTransponder.stop();
-					this.currTransponder = null;
 				}
 
 				break;
@@ -314,36 +369,48 @@ public class ControllerMenu {
 		// Create a scanner for use in gathering input
 		ServerSocket serverSocket = null;
 		InetAddress serverAddress = null;
+
 		int portInput;
 		int backlogInput;
+		
 		// Prompt user for server address and socket,
 		// Create relevant variables for each
 
 		System.out.println("Server Address:\n");
 		String serverInput = keyboardInput.next();
+		
 		System.out.println("Server Socket:\n");
 		portInput = keyboardInput.nextInt();
+		
 		System.out.println("Connection backlog value on local server:\n");
 		backlogInput = keyboardInput.nextInt();
 
-			// Create InetAddress object using constructor
-			// With string as the input
-			try {
-				serverAddress = InetAddress.getByName(serverInput);
-			} catch (UnknownHostException e1) {
-				System.out.println("ControllerMenu| Bad server address input!");
-				e1.printStackTrace();
-			}
-		
+		// Create InetAddress object using constructor
+		// With string as the input
+		try {
+			
+			serverAddress = InetAddress.getByName(serverInput);
+			
+		} catch (UnknownHostException e1) {
+			
+			System.out.println("ControllerMenu| Bad server address input!");
+			e1.printStackTrace();
+			
+		}
 
 		// Create server socket by passing in
 		// The InetAddress object,backlog int, socket int
 		// Set socket options here
 		// TODO: Future feature: Method that sets socket options
 		try {
-			serverSocket = new ServerSocket(portInput, backlogInput, serverAddress);
-
+			InetSocketAddress serverAddr = new InetSocketAddress(InetAddress.getByName(serverInput),portInput);
+			
+			serverSocket = new ServerSocket();
+			serverSocket.setReuseAddress(true);
+			serverSocket.bind(serverAddr,backlogInput);
+			
 		} catch (IOException e) {
+			
 			e.printStackTrace();
 		}
 
@@ -382,27 +449,27 @@ public class ControllerMenu {
 		// TODO: Create debugFlag boolean flag and related output
 
 		Socket clientSocket = null;
-		
+
 		InetAddress clientRemoteAddr = null;
 		InetAddress clientLocalAddr = null;
-		
+
 		int clientRemoteSocket;
 		int clientLocalSocket;
 
 		// Request the address on the local machine that
 		// we want to send data from, including the port number
 		// Store as clientLocalAddr and clientLocalSocket.
-		
+
 		System.out.println("Client IP Address: \n");
-		
+
 		try {
 			clientLocalAddr = InetAddress.getByName(userInput.next());
 		} catch (UnknownHostException e) {
 			e.printStackTrace();
 		}
-		
+
 		System.out.println("Client Socket:\n");
-		
+
 		clientLocalSocket = userInput.nextInt();
 
 		// Request the address for the remote machine that we want
@@ -419,7 +486,7 @@ public class ControllerMenu {
 
 		// Attempt creating a new Socket object using clientRemoteaddr,
 		// clientRemoteSocket.
-		
+
 		try {
 			clientSocket = new Socket(clientRemoteAddr, clientRemoteSocket, clientLocalAddr, clientLocalSocket);
 		} catch (IOException e) {
@@ -430,10 +497,10 @@ public class ControllerMenu {
 	}
 
 	public boolean promptDebugFlag(Scanner userInput) {
-		
+
 		System.out.println("Debug mode? \n");
 		System.out.println("1 - ON\n2 - OFF");
-		
+
 		int response = userInput.nextInt();
 		if (response == 1) {
 			return true;
@@ -444,7 +511,7 @@ public class ControllerMenu {
 		}
 		return false;
 	}
-	
+
 	// prompyPayload will prompt develop a payload via user input
 	// and return the Payload object
 	// This will likely change as Transponder is developed further

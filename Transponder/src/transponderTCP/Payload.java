@@ -33,6 +33,12 @@ public class Payload implements Serializable{
 		return this.messageNumber;
 	}
 	
+	public int hashCode() {
+		
+		return this.messageNumber + this.messageName.hashCode();
+		
+	}
+	
 	
 	@Override
 	public boolean equals(Object o) {

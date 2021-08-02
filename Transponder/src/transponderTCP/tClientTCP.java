@@ -191,7 +191,7 @@ public class tClientTCP implements Runnable {
 
 			// Check if the socket exists, and is closed
 			if (this.debugFlag == true) {
-				System.out.println("clientSocketLocal not ready! Socket is closed!");
+				System.out.println("tClient| clientSocketLocal not ready! Socket is closed!");
 			}
 
 			// Ugly constructor we are using to recreate the socket
@@ -314,24 +314,28 @@ public class tClientTCP implements Runnable {
 
 				this.incomingPayload = (Payload) temp;
 
-				// Debug check and method execution
+				// Debug output
 				if (this.debugFlag == true) {
+
 					System.out.println("tClient| Payload recieved! Payload toString() reads: \n");
 					System.out.println("- - - - - - - - - -");
 					System.out.println(this.incomingPayload.toString());
 					System.out.println("- - - - - - - - - -");
-					
+
 					if (this.debugObject != null) {
+
 						this.debugObject.addOutputPayload(incomingPayload);
-						this.debugPayloadIntegrity();
 					}
 				}
 			}
+
 		} catch (SocketException e) {
+
 			System.out.println("tClient| Connection reset! Stopping gracefully! \n");
 
 			this.stopFlag = true;
-			this.cleanupClientConnection();
+
+			this.closeIO();
 
 		} catch (EOFException e) {
 			// If the EOF is hit, because of the other side closing or some error, bring the
@@ -341,7 +345,7 @@ public class tClientTCP implements Runnable {
 			System.out.println("tClient| End of File! Stopping gracefully! \n");
 
 			this.stopFlag = true;
-			this.cleanupClientConnection();
+			this.closeIO();
 			
 			e.printStackTrace();
 
@@ -351,7 +355,7 @@ public class tClientTCP implements Runnable {
 			System.out.println("tClient| IOException! Stopping gracefully! \n");
 
 			this.stopFlag = true;
-			this.cleanupClientConnection();
+			this.closeIO();
 			
 			e.printStackTrace();
 
@@ -361,7 +365,7 @@ public class tClientTCP implements Runnable {
 			System.out.println("tClient| ClassNotFound Exception! Stopping gracefully! \n");
 
 			this.stopFlag = true;
-			this.cleanupClientConnection();
+			this.closeIO();
 			
 			e.printStackTrace();
 		}
@@ -385,9 +389,11 @@ public class tClientTCP implements Runnable {
 		if (!this.clientSocketLocal.isOutputShutdown()) {
 
 			try {
+
 				this.objOutStream.reset();
 				this.objOutStream.writeObject(clientSON);
 				this.objOutStream.flush();
+
 			} catch (IOException e) {
 				// TODO Auto-generated catch block
 				e.printStackTrace();
@@ -400,7 +406,9 @@ public class tClientTCP implements Runnable {
 		// Assumes we have a connected and NOT-closed socket
 
 		if (this.objOutStream != null && this.clientSOFF != null) {
+			
 			try {
+				
 				this.objOutStream.reset();
 				this.objOutStream.writeObject(clientSOFF);
 				this.objOutStream.flush();
@@ -414,20 +422,20 @@ public class tClientTCP implements Runnable {
 	}
 
 	// Closes streams, and the clientSocketRemote
-	public void cleanupClientConnection() {
+	public void closeIO() {
 
 		this.incomingPayload = null;
 		if (this.clientBuffInputStream != null && this.clientSocketLocal != null) {
 
 			try {
+				this.clientSocketLocal.shutdownInput();
+				this.clientSocketLocal.shutdownOutput();
+				
 				this.objInpStream.close();
 				this.objOutStream.close();
 				
 				this.clientBuffOutputStream.close();
 				this.clientBuffInputStream.close();
-
-				this.clientSocketLocal.shutdownInput();
-				this.clientSocketLocal.shutdownOutput();
 				
 				this.clientSocketLocal.close();
 			} catch (IOException e) {
@@ -442,10 +450,14 @@ public class tClientTCP implements Runnable {
 		// Create a new BufferedInputStream from the inputStream generated via Socket
 		// method
 		try {
+			
 			this.clientBuffInputStream = new BufferedInputStream(this.clientSocketLocal.getInputStream());
 			this.objInpStream = new ObjectInputStream(this.clientBuffInputStream);
+			
 		} catch (java.io.EOFException e) {
+			
 			System.out.println("tClient| EOF exception with ObjectInputStream!\n");
+			
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -453,9 +465,11 @@ public class tClientTCP implements Runnable {
 	}
 
 	public void createOutputStreams() {
+
 		// Create a new BufferedInputStream from the inputStream generated via Socket
 		// method
 		try {
+	
 			this.clientBuffOutputStream = new BufferedOutputStream(this.clientSocketLocal.getOutputStream());
 			this.objOutStream = new ObjectOutputStream(this.clientBuffOutputStream);
 			this.objOutStream.flush();
@@ -467,15 +481,22 @@ public class tClientTCP implements Runnable {
 	}
 
 	public void checkConnectionResetKeepAlive() {
+
 		if (this.clientSocketLocal.isConnected()) {
+			
 			try {
+				
 				this.clientSocketLocal.setKeepAlive(true);
+				
 			} catch (SocketException e) {
 				e.printStackTrace();
 			}
+			
 		} else {
 			try {
+				
 				this.clientSocketLocal.setKeepAlive(false);
+				
 			} catch (SocketException e) {
 				e.printStackTrace();
 			}
@@ -490,6 +511,7 @@ public class tClientTCP implements Runnable {
 	}
 
 	public clientSignOff generateClientSignOff(InetAddress client, InetAddress server) {
+		
 		clientSignOff signOff = new clientSignOff(client, server);
 
 		return signOff;
@@ -509,6 +531,7 @@ public class tClientTCP implements Runnable {
 		// Generate the clientSON and clientSOFF objects
 		this.clientSON = this.generateClientSignOn(this.clientSocketLocal.getLocalAddress(),
 				this.clientSocketLocal.getInetAddress());
+		
 		this.clientSOFF = this.generateClientSignOff(this.clientSocketLocal.getLocalAddress(),
 				this.clientSocketLocal.getInetAddress());
 
@@ -517,28 +540,39 @@ public class tClientTCP implements Runnable {
 		this.performSignOn();
 
 		// pre-flight checks with isClientReady() and begin recieving payload
-		
 		if (this.isClientReady() == true) {
+			
 			// Receive the TCP transmission
 
 				// Receive Payload after SignOn
 				this.receivePayload();
 				
 		} else {
-			System.out.println("tClient| isClientReady returned false!");
+			
+			System.out.println("tClient| isClientReady returned false! NO-OP!");
+			
 		}
+		
+		// Finally, send clientSignOff object
+		this.performSignOff();
+		this.closeIO();
 	}
 
 	public void stop() {
+		
 		this.stopFlag = true;
 		this.performSignOff();
-		this.cleanupClientConnection();
+		this.closeIO();
 	}
 
 	public String getRemoteAddrString() {
+		
 		if (this.socketRemoteAddr != null) {
+			
 			return this.socketRemoteAddr.toString();
+			
 		} else {
+			
 			throw new IllegalStateException("tClient| No clientSocketLocal set! Unable to return string! \n");
 		}
 	}
@@ -546,9 +580,11 @@ public class tClientTCP implements Runnable {
 	// Returns the current payload
 	// Throws an IllegalStateException if the IncomingPayload is currently null
 	public Payload getPayload() {
+		
 		if (this.incomingPayload != null) {
 			return this.incomingPayload;
 		} else {
+			
 			throw new IllegalStateException("tClient| incomingPayload is null! \n");
 		}
 	}
@@ -561,24 +597,17 @@ public class tClientTCP implements Runnable {
 		this.debugObject = debug;
 	}
 
-	public void debugPayloadIntegrity() {
-		if (this.debugFlag == true) {
-			if (this.incomingPayload == null) {
-				System.out.println("tClient| incomingPayload not set!\n");
-			}
-		}
-		if (this.incomingPayload != null) {
-			this.debugObject.addOutputPayload(incomingPayload);
-		}
-	}
-
 	public String getStatus() {
+		
 		String status = "";
+		
 		status += "tClient| Connection Status: \n";
 
 		status += "---Local Address settings--- \n";
+		
 		if (this.socketLocalAddr == null) {
 			status += "Local Address set to null!\n";
+			
 		} else {
 			status += "Local Address set to:\n";
 			status += "TCP: " + this.socketLocalAddr.toString() + "\n";
@@ -588,6 +617,7 @@ public class tClientTCP implements Runnable {
 		}
 
 		status += "---Remote Address settings--- \n";
+		
 		if (this.socketRemoteAddr == null) {
 			status += "No remote socket set! \n";
 		}
