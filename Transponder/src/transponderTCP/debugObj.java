@@ -8,46 +8,53 @@ import java.util.HashMap;
 // input and output objects can be collected and compared.
 
 public class debugObj {
-	Payload inputPayload;
-	Payload outputPayloadSingle;
-	HashMap<Payload,Integer> outputPayloadMap = new HashMap<Payload,Integer>();
+	ServerMessage<?> inputServMessage;
+	ServerMessage<?> recievedServerMessage;
+	
+	HashMap<ServerMessage<?>,Integer> recievedServerMessagesMap = new HashMap<ServerMessage<?>,Integer>();
 	
 	debugObj(){
-		this.inputPayload = null;
+		this.inputServMessage = null;
 	}
 	
-	debugObj(Payload payload){
-		this.inputPayload = payload;
+	debugObj(ServerMessage<?> servMessage){
+		this.inputServMessage = servMessage;
 	}
 	
-	public void setInputPayload(Payload payload) {
-		this.inputPayload = payload;
+	public void setInpServerMessage(ServerMessage<?> servMessage) {
+		this.inputServMessage = servMessage;
 	}
 	
-	public void addOutputPayload(Payload payload) {
+	public void setRecievedServMessage(ServerMessage<?> serverMessage) {
 		
-		// If the outputPayloadMap already contains this payload - increment it.
-		if(this.outputPayloadMap.containsKey(payload)) {
+		// If the recievedServerMessagesMap already contains this payload - increment it.
+		if(this.recievedServerMessagesMap.containsKey(serverMessage)) {
 			
-			this.outputPayloadMap.replace(payload, this.outputPayloadMap.get(payload) +1);
+			this.recievedServerMessagesMap.replace(serverMessage, this.recievedServerMessagesMap.get(serverMessage) +1);
 		}
 		
-		// If the outputPayloadMap does not contain this payload - add it.
-		if(!this.outputPayloadMap.containsKey(payload)) {
-			this.outputPayloadMap.put(payload, 1);
+		// If the recievedServerMessagesMap does not contain this payload - add it.
+		if(!this.recievedServerMessagesMap.containsKey(serverMessage)) {
+			this.recievedServerMessagesMap.put(serverMessage, 1);
 		}
 		
 	}
 	
-	public boolean evaluatePayloadEquivalanceMulti() {
-		for(Payload currPayload : this.outputPayloadMap.keySet()) {
+	public boolean evaluateMessageEquivalanceMulti() {
+		
+		for(ServerMessage<?> currServMessage : this.recievedServerMessagesMap.keySet()) {
+
 			int counter = 0;
 			
-			System.out.println("debugObj eval| inputPayload: \n" + this.inputPayload.toString());
-			System.out.println("debugObj eval| outputPayload number:" + counter + "\n" +currPayload.toString() +"\n" +
-			"Payload count:" + this.outputPayloadMap.get(currPayload) + "\n");
+			System.out.println("debugObj eval| inputServMessage: \n" + this.inputServMessage.toString());
+			System.out.println("debugObj eval| recievedServerMessage number:" + counter + "\n" +currServMessage.toString() +"\n" +
+			"Payload count:" + this.recievedServerMessagesMap.get(currServMessage) + "\n");
 
-			if(!currPayload.equals(inputPayload)) {
+			// TODO: Legitimate problem - how do we test equivalence between recievedServerMessage and serverMessage?
+			// Think about this. We'll use .equals on their toString() equivalents for now.
+			// Going to write an issue about this and carry on
+			
+			if(!currServMessage.toString().equals(inputServMessage.toString())) {
 				return false;
 			} 
 		}

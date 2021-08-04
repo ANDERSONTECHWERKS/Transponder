@@ -33,13 +33,13 @@ public class ControllerMenu {
 
 			ServerSocket mode1ServSock = this.promptServerSocket(inputScanner);
 
-			this.currTransponder = new TransponderTCP(1, mode1ServSock, mode1ServSock.getLocalSocketAddress(), this);
+			this.currTransponder = new TransponderTCP(mode1ServSock, this);
 
 			// After creating the transponder,
 			// prompt and initialize the payload.
-			Payload initPayload = this.promptPayload(inputScanner);
+			ServerMessage initServMessage = this.promptServerMessage(inputScanner);
 
-			this.currTransponder.setInitialServerPayload(initPayload);
+			this.currTransponder.setServerMessage(initServMessage);
 
 			// Debug prompt and set
 			this.debugFlag = this.promptDebugFlag(inputScanner);
@@ -64,7 +64,7 @@ public class ControllerMenu {
 
 			Socket mode2Sock = this.promptClientSocket(inputScanner);
 
-			this.currTransponder = new TransponderTCP(2, mode2Sock, mode2Sock.getRemoteSocketAddress());
+			this.currTransponder = new TransponderTCP(mode2Sock);
 
 			// Debug prompt and set
 			this.debugFlag = this.promptDebugFlag(inputScanner);
@@ -99,13 +99,13 @@ public class ControllerMenu {
 			// Create Server socket, use it in the constructor for currTransponder
 			ServerSocket mode1ServSock = this.promptServerSocket(this.inputScanner);
 
-			this.currTransponder = new TransponderTCP(1, mode1ServSock, mode1ServSock.getLocalSocketAddress(), this);
+			this.currTransponder = new TransponderTCP(mode1ServSock, this);
 
 			// After creating the transponder,
 			// prompt and initialize the payload.
-			Payload initPayload = this.promptPayload(inputScanner);
+			ServerMessage initServMessage = this.promptServerMessage(inputScanner);
 
-			this.currTransponder.setInitialServerPayload(initPayload);
+			this.currTransponder.setServerMessage(initServMessage);
 
 			// Debug prompt and set
 			this.debugFlag = this.promptDebugFlag(inputScanner);
@@ -123,7 +123,7 @@ public class ControllerMenu {
 		if (this.mode == 2) {
 			// Create client socket, use it in the constructor for currTransponder
 			Socket mode2Sock = this.promptClientSocket(this.inputScanner);
-			this.currTransponder = new TransponderTCP(2, mode2Sock, mode2Sock.getRemoteSocketAddress());
+			this.currTransponder = new TransponderTCP(mode2Sock);
 
 			// Debug prompt and set
 			this.debugFlag = this.promptDebugFlag(inputScanner);
@@ -224,14 +224,13 @@ public class ControllerMenu {
 
 						ServerSocket mode1ServSock = this.promptServerSocket(inputScanner);
 
-						this.currTransponder = new TransponderTCP(1, mode1ServSock,
-								mode1ServSock.getLocalSocketAddress(), this);
+						this.currTransponder = new TransponderTCP(mode1ServSock, this);
 
 						// After creating the transponder,
 						// prompt and initialize the payload.
-						Payload initPayload = this.promptPayload(inputScanner);
+						ServerMessage initServerMessage = this.promptServerMessage(inputScanner);
 
-						this.currTransponder.setInitialServerPayload(initPayload);
+						this.currTransponder.setServerMessage(initServerMessage);
 
 						// Debug prompt and set
 						this.debugFlag = this.promptDebugFlag(inputScanner);
@@ -256,8 +255,7 @@ public class ControllerMenu {
 
 						Socket mode2Sock = this.promptClientSocket(inputScanner);
 
-						this.currTransponder = new TransponderTCP(2, mode2Sock, mode2Sock.getRemoteSocketAddress(),
-								this);
+						this.currTransponder = new TransponderTCP(mode2Sock,this);
 
 						// Debug prompt
 						this.debugFlag = this.promptDebugFlag(inputScanner);
@@ -368,7 +366,6 @@ public class ControllerMenu {
 
 		// Create a scanner for use in gathering input
 		ServerSocket serverSocket = null;
-		InetAddress serverAddress = null;
 
 		int portInput;
 		int backlogInput;
@@ -384,19 +381,6 @@ public class ControllerMenu {
 		
 		System.out.println("Connection backlog value on local server:\n");
 		backlogInput = keyboardInput.nextInt();
-
-		// Create InetAddress object using constructor
-		// With string as the input
-		try {
-			
-			serverAddress = InetAddress.getByName(serverInput);
-			
-		} catch (UnknownHostException e1) {
-			
-			System.out.println("ControllerMenu| Bad server address input!");
-			e1.printStackTrace();
-			
-		}
 
 		// Create server socket by passing in
 		// The InetAddress object,backlog int, socket int
@@ -488,8 +472,11 @@ public class ControllerMenu {
 		// clientRemoteSocket.
 
 		try {
+			
 			clientSocket = new Socket(clientRemoteAddr, clientRemoteSocket, clientLocalAddr, clientLocalSocket);
+			
 		} catch (IOException e) {
+			System.out.println("ControllerMenu| Socket creation failed!");
 			e.printStackTrace();
 		}
 
@@ -516,19 +503,20 @@ public class ControllerMenu {
 	// and return the Payload object
 	// This will likely change as Transponder is developed further
 
-	public Payload promptPayload(Scanner userInput) {
+	public ServerMessage promptServerMessage(Scanner userInput) {
 
 		if (this.currTransponder == null) {
-			throw new IllegalStateException("Payload not set! reqPayload failed!");
+			throw new IllegalStateException("ServerMessage not set! currTransponder is null!");
 		}
 
 		System.out.println("Please enter the name of this Payload:");
+		
 		String payloadTitle = userInput.next();
 
 		System.out.println("Please enter the serial number of this Payload:");
 		int payloadNumber = userInput.nextInt();
 
-		Payload payload = new Payload(payloadNumber, payloadTitle);
+		ServerMessage payload = new Payload(payloadNumber, payloadTitle);
 
 		return payload;
 	}

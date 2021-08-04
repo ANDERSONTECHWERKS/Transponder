@@ -9,6 +9,7 @@ import java.net.ServerSocket;
 import java.net.Socket;
 import java.net.SocketAddress;
 import java.net.UnknownHostException;
+import java.util.HashSet;
 import java.util.Scanner;
 
 import org.junit.Assert;
@@ -34,20 +35,23 @@ public class Tests extends TestCase{
 		
 		try {
 			servSock = new ServerSocket();
-			testTranspServer = new TransponderTCP(1,servSock,serverSockAddr);
-			testTranspServer.setInitialServerPayload(testPayload);
+			
+			testTranspServer = new TransponderTCP(servSock);
+			testTranspServer.setServerMessage(testPayload);
 			testTranspServer.setDebugFlag(true);
 			testTranspServer.setDebugObject(dObj);
 			testTranspServer.run();
 			
 			clientSock.bind(clientSockAddr);
-			testTranspClient = new TransponderTCP(2,clientSock,serverSockAddr);
+			
+			testTranspClient = new TransponderTCP(clientSock);
 			testTranspClient.setDebugFlag(true);
 			testTranspClient.setDebugObject(dObj);
 			testTranspClient.run();
 
-			assertTrue(dObj.evaluatePayloadEquivalanceMulti());
-			System.out.println("dObj evaluatePayloadEquivalence result: " + dObj.evaluatePayloadEquivalanceMulti());
+			assertTrue(dObj.evaluateMessageEquivalanceMulti());
+			
+			System.out.println("dObj evaluatePayloadEquivalence result: " + dObj.evaluateMessageEquivalanceMulti());
 			
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
@@ -124,10 +128,11 @@ public class Tests extends TestCase{
 			e.printStackTrace();
 		}
 
-		tServerTCP testServer = new tServerTCP(serverSock,serverAddr);
-		testServer.setOutgoingPayload(testPayload);
+		TransponderTCP testTransp = new TransponderTCP(serverSock);
 		
-		Thread serverThread = new Thread(testServer);
+		testTransp.setServerMessage(testPayload);
+		
+		Thread serverThread = new Thread(testTransp);
 		
 		serverThread.start();
 	}
@@ -157,7 +162,7 @@ public class Tests extends TestCase{
 
 		clientThread.start();
 		
-		Payload testPayload = testClient.getPayload();
+		ServerMessage testPayload = testClient.getLastServerMessage();
 		
 		if(testPayload instanceof Payload) {
 			System.out.println("testClient: Payload received!\n" + testPayload.toString() +"\n");
@@ -182,11 +187,23 @@ public class Tests extends TestCase{
 			e.printStackTrace();
 		}
 
-		tServerTCP testServer = new tServerTCP(serverSock,serverAddr);
+		// Try instantiating serverSock
+		try {
+			serverSock = new ServerSocket(6969, 1, serverAddr.getAddress());
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
 		
-		testServer.setOutgoingPayload(testPayload);
-		testServer.setDebugFlag(true);
-		testServer.setDebugObj(debugger);
+		TransponderTCP testTranspTCP = new TransponderTCP(serverSock);
+
+		testTranspTCP.setDebugFlag(true);
+		testTranspTCP.setServerMessage(testPayload);
+		testTranspTCP.setDebugObject(debugger);
+
+		Thread transpThread = new Thread(testTranspTCP);
+		
+		transpThread.start();		
 		
 		
 		Socket localSock = null;
@@ -209,13 +226,11 @@ public class Tests extends TestCase{
 		testClient.setDebugFlag(true);
 		testClient.setDebugObj(debugger);
 		
-		Thread serverThread = new Thread(testServer);
 		Thread clientThread = new Thread(testClient);
 		
-		serverThread.start();
 		clientThread.start();
 
-		boolean payloadsMatch = debugger.evaluatePayloadEquivalanceMulti();
+		boolean payloadsMatch = debugger.evaluateMessageEquivalanceMulti();
 
 		System.out.println("testClientAndServer| debugObj payloads match? :" + payloadsMatch);
 		
@@ -245,5 +260,77 @@ public class Tests extends TestCase{
 		InputStream input = new ByteArrayInputStream(createMode2Input.getBytes());
 		Scanner testScanner = new Scanner(input);
 		ControllerMenu testMenu = new ControllerMenu(testScanner);
+	}
+	
+	
+	@Test
+	public void testMultipleClients() {
+		InetSocketAddress serverAddr = new InetSocketAddress(InetAddress.getLoopbackAddress(),6969);
+		InetSocketAddress clientAddr = new InetSocketAddress(InetAddress.getLoopbackAddress(),7000);
+		ServerSocket servSock = null;
+		
+		try {
+			servSock = new ServerSocket();
+			servSock.bind(serverAddr);
+			
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		
+		TransponderTCP testTranspTCP = new TransponderTCP(servSock);
+
+		Payload testPayload = new Payload(7,"SIGMA");
+
+		testTranspTCP.setDebugFlag(true);
+		testTranspTCP.setServerMessage(testPayload);
+		
+		Thread transpThread = new Thread(testTranspTCP);
+		
+		transpThread.start();
+		
+		HashSet<tClientTCP> clientSet = new HashSet<tClientTCP>();
+		HashSet<Thread> clientThreadSet = new HashSet<Thread>();
+
+		for(int i = 0; i < 10; i++) {
+			
+			int incPort = clientAddr.getPort() + i;
+			
+			InetSocketAddress clientAddrInc = new InetSocketAddress(InetAddress.getLoopbackAddress(),incPort);
+
+			Socket clientSock = null;
+			
+			clientSock = new Socket();
+
+			try {
+
+				clientSock.bind(clientAddrInc);
+
+			} catch (IOException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+			
+			tClientTCP newClient = new tClientTCP(clientSock);
+			
+			newClient.setLocalSocketAddress(clientAddrInc);
+			newClient.setRemoteSocketAddress(serverAddr);
+			
+			newClient.generateClientSignOn(clientAddrInc.getAddress(), serverAddr.getAddress());
+			newClient.generateClientSignOff(clientAddrInc.getAddress(), serverAddr.getAddress());
+			newClient.setDebugFlag(true);
+			
+			clientSet.add(newClient);
+
+		}
+		
+		for(tClientTCP currClient : clientSet) {
+			Thread newThread = new Thread(currClient);
+			clientThreadSet.add(newThread);
+		}
+						
+		for(Thread currThread : clientThreadSet) {
+			currThread.start();
+		}
 	}
 }
