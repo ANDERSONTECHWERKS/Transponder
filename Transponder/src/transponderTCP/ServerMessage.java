@@ -48,6 +48,10 @@ public abstract class ServerMessage<S> implements Serializable{
 		this.message = message;
 	}
 	
+	public String getMessage() {
+		return this.message;
+	}
+	
 	public Object getPayload() {
 		return payload;
 	}

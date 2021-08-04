@@ -20,9 +20,16 @@ public abstract class ClientMessage<C> implements Serializable{
 	public void setMessage(String message) {
 		this.message = message;
 	}
+	
+	public String getMessage() {
+		return this.message;
+	}
 		
 	public Object getPayload() {
 		return payload;
 	}
 	
+	public Date getTimestamp() {
+		return this.timestamp;
+	}
 }
