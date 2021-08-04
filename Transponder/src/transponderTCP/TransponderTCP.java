@@ -149,12 +149,28 @@ public class TransponderTCP implements Runnable{
 	}
 
 	// Close clients gracefully, stop threads (internally. Do NOT use Thread.stop()! Deprecated!)
-	public void stop() {
+	public void stopAll() {
 		this.mode = 0;
 
 		for (tClientTCP currClient : this.tClientSet) {
 			currClient.stop();
 		}
+
+		for (tServerTCP currServer : this.tServerSet) {
+			currServer.stop();
+		}
+	}
+	
+	public void stopClients() {
+		this.mode = 0;
+
+		for (tClientTCP currClient : this.tClientSet) {
+			currClient.stop();
+		}
+	}
+	
+	public void stopServers() {
+		this.mode = 0;
 
 		for (tServerTCP currServer : this.tServerSet) {
 			currServer.stop();
@@ -170,7 +186,7 @@ public class TransponderTCP implements Runnable{
 	}
 	
 	// Directs each server instance to send the directed message NOW!
-	public void sendServerMessage(ServerMessage<?> servMessage) {
+	public void serverSendMessage(ServerMessage<?> servMessage) {
 		this.servMessage = servMessage;
 		for(tServerTCP currServ : this.tServerSet) {
 			currServ.setServerMessage(servMessage);
@@ -217,7 +233,7 @@ public class TransponderTCP implements Runnable{
 	// This method configures Mode 1
 	// Mode 1 is server-only, no client
 	
-	public void confMode1() {
+	private void confMode1() {
 		// Set mode, in case of mode switch
 		if (this.mode != 1) {
 			this.mode = 1;
@@ -272,7 +288,7 @@ public class TransponderTCP implements Runnable{
 
 	// This method configures Mode 2
 	// Mode 2 is client-only, no server
-	public void confMode2() {
+	private void confMode2() {
 
 		// Set mode, in case of mode switch
 		if (this.mode != 2) {
@@ -308,7 +324,7 @@ public class TransponderTCP implements Runnable{
 	}
 	
 	// TODO: Future - relay mode?
-	public void confMode3() {
+	private void confMode3() {
 
 		// Set mode, in case of mode switch
 		if(this.mode != 3) {
@@ -402,14 +418,31 @@ public class TransponderTCP implements Runnable{
 		return messageList.stream();
 	}
 	
-	public void processSignOn(clientSignOn cson) {
+	public void serverProcessSignOn(clientSignOn cson) {
 		System.out.println("TransponderTCP| new signon from:" + cson.getClientAddr().toString());
 		this.csonSet.add(cson);
 	}
 	
-	public void processSignOff(clientSignOff csoff) {
+	public void serverProcessSignOff(clientSignOff csoff) {
 		System.out.println("TransponderTCP| new signoff from:" + csoff.getClientAddr().toString());
 		this.csoffSet.add(csoff);
+	}
+	
+	public void clientPerformSignOn() {
+		for(tClientTCP currClient : this.tClientSet) {
+			currClient.clientPerformSignOn();
+		}
+	}
+	
+	public void clientPerformSignOff() {
+		for(tClientTCP currClient : this.tClientSet) {
+			currClient.clientPerformSignOff();
+		}
+		
+	}
+	
+	public ClientMessage<?> clientGetLastMessage() throws InterruptedException{
+		return this.clientMessages.take();
 	}
 
 }

@@ -13,6 +13,7 @@ import java.net.Socket;
 import java.net.SocketAddress;
 import java.net.SocketException;
 import java.net.UnknownHostException;
+import java.util.Date;
 import java.util.concurrent.PriorityBlockingQueue;
 
 // Transponder-Client 
@@ -40,7 +41,7 @@ public class tClientTCP implements Runnable {
 	private clientSignOff clientSOFF = null;
 	private clientSignOn clientSON = null;
 
-	private ServerMessage incomingServMessage = null;
+	private ServerMessage<?> incomingServMessage = null;
 
 	private boolean stopFlag = false;
 	private boolean debugFlag = false;
@@ -355,6 +356,11 @@ public class tClientTCP implements Runnable {
 
 			Object temp = objInpStream.readObject();
 
+			if (temp instanceof ClientMessage<?>) {
+				// If we recieve a clientMessage - throw it into the clientMessages queue
+				this.clientMessages.put((ClientMessage<?>)temp);
+			}
+
 			if (temp instanceof ServerMessage<?>) {
 
 				this.incomingServMessage = (ServerMessage<?>) temp;
@@ -427,7 +433,7 @@ public class tClientTCP implements Runnable {
 		
 	}
 	
-	public boolean sendMessage(ClientMessage<?> message) {
+	public boolean clientSendMessage(ClientMessage<?> message) {
 		
 		try {
 			this.objOutStream.writeObject(message);
@@ -439,7 +445,7 @@ public class tClientTCP implements Runnable {
 		
 	}
 
-	public void performSignOn() {
+	public void clientPerformSignOn() {
 		// Assumes we have a connected and NOT-closed socket
 
 		// Attempts writing the clientSON object
@@ -459,7 +465,7 @@ public class tClientTCP implements Runnable {
 	}
 
 	// Transmits a clientSignOff object
-	public void performSignOff() {
+	public void clientPerformSignOff() {
 		// Assumes we have a connected and NOT-closed socket
 
 		if (this.objOutStream != null && this.clientSOFF != null) {
@@ -616,7 +622,6 @@ public class tClientTCP implements Runnable {
 	@Override
 	public void run() {
 
-		
 		// preflights
 		this.preflight_run();
 		
@@ -630,31 +635,26 @@ public class tClientTCP implements Runnable {
 
 		// Perform clientSignOn
 		// When clientSignOn is transmitted, assume that payloads are being transmitted.
-		this.performSignOn();
+		this.clientPerformSignOn();
 
 		// pre-flight checks with isClientReady() and begin recieving payload
 		if (this.isClientReady() == true) {
 			
 			// Receive the TCP transmission
 
+			while(this.stopFlag == false) {
 				// Receive Payload after SignOn
 				this.receiveMessages();
-				
+			}
 		} else {
-			
 			System.out.println("tClient| isClientReady returned false! NO-OP!");
-			
 		}
-		
-		// Finally, send clientSignOff object
-		this.performSignOff();
-		this.closeIO();
 	}
 
 	public void stop() {
 		
 		this.stopFlag = true;
-		this.performSignOff();
+		this.clientPerformSignOff();
 		this.closeIO();
 	}
 

@@ -117,7 +117,7 @@ public class tServerTCP implements Runnable {
 						System.out.println("tServer| inpClientSignOn object received in serviceStart() method!\n");
 					}
 					
-					this.parentTransponder.processSignOn(inpCliSignOn);
+					this.parentTransponder.serverProcessSignOn(inpCliSignOn);
 					
 				}
 				
@@ -133,7 +133,7 @@ public class tServerTCP implements Runnable {
 					// Once we receive clientSignOff object, stop this tServer. 
 					// We should still be listening at the TransponderTCP-level.
 					this.stopFlag = true;
-					this.parentTransponder.processSignOff(inpCliSignOff);
+					this.parentTransponder.serverProcessSignOff(inpCliSignOff);
 				}
 			}
 			
@@ -159,7 +159,7 @@ public class tServerTCP implements Runnable {
 					}
 					
 					// Hand the clientSignOn object to the parent transponder
-					this.parentTransponder.processSignOn((clientSignOn)signOnObject);
+					this.parentTransponder.serverProcessSignOn((clientSignOn)signOnObject);
 				}
 
 			} catch (ClassNotFoundException | IOException e) {

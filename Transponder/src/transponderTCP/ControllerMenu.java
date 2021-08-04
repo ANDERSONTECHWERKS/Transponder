@@ -328,7 +328,7 @@ public class ControllerMenu {
 					System.out.println("Please Configure and Start Transponder!");
 
 				} else if (this.currTransponder instanceof TransponderTCP) {
-					this.currTransponder.stop();
+					this.currTransponder.stopAll();
 					this.currTransponder = null;
 				}
 				
@@ -348,7 +348,7 @@ public class ControllerMenu {
 				// data/connection-oriented habits right now.
 
 				if (this.currTransponder != null) {
-					this.currTransponder.stop();
+					this.currTransponder.stopAll();
 				}
 
 				break;
