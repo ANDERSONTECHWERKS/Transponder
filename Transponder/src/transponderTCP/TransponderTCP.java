@@ -258,7 +258,9 @@ public class TransponderTCP implements Runnable {
 			e.printStackTrace();
 		}
 
-		server.setServerMessage(this.servMessage);
+		if(this.servMessage != null) {
+			server.setServerMessage(this.servMessage);
+		}
 
 		// debug-specific actions when debugFlag set to TRUE
 		if (this.debugFlag == true) {
