@@ -37,7 +37,7 @@ public class tServerTCP implements Runnable {
 	private ObjectInputStream objInputStream = null;
 	
 	private ServerMessage<?> currServMessage = null;
-	private PriorityBlockingQueue<ClientMessage<?>> clientMessages = null;
+	private PriorityBlockingQueue<ClientMessage<?>> clientMessages = new PriorityBlockingQueue<ClientMessage<?>>();
 
 	private debugObj debugObject = null;
 	
