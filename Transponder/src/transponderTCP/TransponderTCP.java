@@ -13,7 +13,7 @@ import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.PriorityBlockingQueue;
 import java.util.stream.Stream;
 import transponderTCP.MessageDateComparator;
-public class TransponderTCP implements Runnable, Transponder{
+public class TransponderTCP implements Runnable{
 	
 	private int mode;
 	
