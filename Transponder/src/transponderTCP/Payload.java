@@ -1,9 +1,9 @@
-package transponder;
+package transponderTCP;
 
 import java.io.Serializable;
 import java.util.HashSet;
 
-public class Payload implements Serializable{
+public class Payload extends ServerMessage implements Serializable{
 	/**
 	 * 
 	 */

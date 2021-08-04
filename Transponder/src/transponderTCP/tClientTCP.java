@@ -1,4 +1,4 @@
-package transponder;
+package transponderTCP;
 
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
@@ -7,11 +7,13 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
+import java.io.OutputStream;
 import java.net.InetAddress;
 import java.net.Socket;
 import java.net.SocketAddress;
 import java.net.SocketException;
 import java.net.UnknownHostException;
+import java.util.concurrent.PriorityBlockingQueue;
 
 // Transponder-Client 
 // clientSocket: Local socket
@@ -20,21 +22,25 @@ import java.net.UnknownHostException;
 // socketRemoteAddr: Remote address for assignment to remote socket
 // clientStream: Stream for incoming data
 // objInpStream: Object Stream (used with clientStream) used to receive object
-// incomingPayload: Recieving object for Payload-class payload, recieved via objInpStream
+// incomingServMessage: Recieving object for Payload-class payload, recieved via objInpStream
 // stopFlag: boolean used to start / stop thread
 public class tClientTCP implements Runnable {
 
 	private Socket clientSocket = null;
+	
 	private SocketAddress socketLocalAddr = null;
 	private SocketAddress socketRemoteAddr = null;
+	
 	private BufferedInputStream clientBuffInputStream = null;
 	private BufferedOutputStream clientBuffOutputStream = null;
+	
 	private ObjectInputStream objInpStream = null;
 	private ObjectOutputStream objOutStream = null;
 
 	private clientSignOff clientSOFF = null;
 	private clientSignOn clientSON = null;
-	private Payload incomingPayload = null;
+
+	private ServerMessage incomingServMessage = null;
 
 	private boolean stopFlag = false;
 	private boolean debugFlag = false;
@@ -43,16 +49,47 @@ public class tClientTCP implements Runnable {
 
 	private TransponderTCP parentTransponder = null;
 
+	PriorityBlockingQueue<ClientMessage<?>> clientMessages = null;
 	
-	// tClient instance without parent reference.
-	// DEBUG ONLY!
-	
-	tClientTCP(){
-		// Nothing set...
-	}
+	tClientTCP(Socket localSocket, PriorityBlockingQueue<ClientMessage<?>> cMessages) {
+		// Assign socket to field
+		this.clientSocket = localSocket;
 
-	// tClient instance without parent reference.
-	// DEBUG ONLY!
+		// Check if we have a localSocket that is already bound. Pull the
+		// LocalSocketAddress from it.
+		if (localSocket.isBound()) {
+			
+			// Output for debugFlag
+			if (this.debugFlag == true) {
+				
+				System.out.println("tClient| localSocket already bound on creation!");
+				System.out.println("tClient| Setting socketLocalAddr to " 
+				+ localSocket.getLocalSocketAddress().toString());
+			}
+			
+			this.socketLocalAddr = localSocket.getLocalSocketAddress();
+			this.socketRemoteAddr = localSocket.getRemoteSocketAddress();
+		}
+
+		// Check if the localSocket is connected. If it is, pull the RemoteSocketAddress
+		// from it.
+		if (localSocket.isConnected()) {
+			
+			// Output for debugFlag
+			if (this.debugFlag == true) {
+				
+				System.out.println("tClient| localSocket already connected on creation!");
+				System.out.println("tClient| Setting socketRemoteAddr to " 
+				+ localSocket.getRemoteSocketAddress().toString());
+			}
+			
+			this.socketRemoteAddr = localSocket.getRemoteSocketAddress();
+			
+			// clientMessages queue used for storage and retrieval of messages
+			this.clientMessages = cMessages;
+		}
+	}
+	
 	tClientTCP(Socket localSocket) {
 		// Assign socket to field
 		this.clientSocket = localSocket;
@@ -60,25 +97,35 @@ public class tClientTCP implements Runnable {
 		// Check if we have a localSocket that is already bound. Pull the
 		// LocalSocketAddress from it.
 		if (localSocket.isBound()) {
+			
 			// Output for debugFlag
 			if (this.debugFlag == true) {
+				
 				System.out.println("tClient| localSocket already bound on creation!");
-				System.out.println(
-						"tClient| Setting socketLocalAddr to " + localSocket.getLocalSocketAddress().toString());
+				System.out.println("tClient| Setting socketLocalAddr to " 
+				+ localSocket.getLocalSocketAddress().toString());
 			}
+			
 			this.socketLocalAddr = localSocket.getLocalSocketAddress();
+			this.socketRemoteAddr = localSocket.getRemoteSocketAddress();
 		}
 
 		// Check if the localSocket is connected. If it is, pull the RemoteSocketAddress
 		// from it.
 		if (localSocket.isConnected()) {
+			
 			// Output for debugFlag
 			if (this.debugFlag == true) {
+				
 				System.out.println("tClient| localSocket already connected on creation!");
-				System.out.println(
-						"tClient| Setting socketRemoteAddr to " + localSocket.getRemoteSocketAddress().toString());
+				System.out.println("tClient| Setting socketRemoteAddr to " 
+				+ localSocket.getRemoteSocketAddress().toString());
 			}
+			
 			this.socketRemoteAddr = localSocket.getRemoteSocketAddress();
+			
+			// clientMessages queue used for storage and retrieval of messages
+			this.clientMessages = new PriorityBlockingQueue<ClientMessage<?>>();
 		}
 	}
 
@@ -87,8 +134,9 @@ public class tClientTCP implements Runnable {
 	// addresses assigned)
 	// If this isn't happening: Make it happen at the ControllerMenu /
 	// TransponderTCP level!
-	// Includes reference to parent transponder object for callbacks!
-	tClientTCP(Socket localSocket, TransponderTCP parent) {
+	// Includes reference to parent transponderTCP object for callbacks!
+	tClientTCP(Socket localSocket, TransponderTCP parent, PriorityBlockingQueue<ClientMessage<?>> cMessages) {
+		
 		// Assign socket to field
 		this.clientSocket = localSocket;
 
@@ -97,6 +145,7 @@ public class tClientTCP implements Runnable {
 
 		// Check if we have a localSocket that is already bound. Pull the
 		// LocalSocketAddress from it.
+		
 		if (localSocket.isBound()) {
 			// Output for debugFlag
 			if (this.debugFlag == true) {
@@ -105,6 +154,7 @@ public class tClientTCP implements Runnable {
 						"tClient| Setting socketLocalAddr to " + localSocket.getLocalSocketAddress().toString());
 			}
 			this.socketLocalAddr = localSocket.getLocalSocketAddress();
+			this.socketRemoteAddr = localSocket.getRemoteSocketAddress();
 		}
 
 		// Check if the localSocket is connected. If it is, pull the RemoteSocketAddress
@@ -117,6 +167,9 @@ public class tClientTCP implements Runnable {
 						"tClient| Setting socketRemoteAddr to " + localSocket.getRemoteSocketAddress().toString());
 			}
 			this.socketRemoteAddr = localSocket.getRemoteSocketAddress();
+			
+			this.clientMessages = cMessages;
+
 		}
 	}
 
@@ -287,25 +340,11 @@ public class tClientTCP implements Runnable {
 			}
 		}
 
-		// This block used to check the first byte to see if the stream is at EOF.
-		// ...Might be what's causing troubles. Commenting out for now.
-//		// Ensures that we don't read on an EOF marker
-//		// Blocks until a byte is readable
-//		try {
-//			if(this.objInpStream.read() == -1) {
-//				return false;
-//			}
-//		} catch (IOException e) {
-//			e.printStackTrace();
-//		}
-
 		return true;
 	}
 
-	// receiveTCP attempts to obtain an inputStream from clientSocket and
-	// assign it to clientStream
 
-	public void receivePayload() {
+	public void receiveMessages() {
 
 		// TODO: Create type-check for this.incomingPayload
 		// This is likely a huge security issue to just *blatantly accept* objects and
@@ -316,21 +355,21 @@ public class tClientTCP implements Runnable {
 
 			Object temp = objInpStream.readObject();
 
-			if (temp instanceof Payload) {
+			if (temp instanceof ServerMessage<?>) {
 
-				this.incomingPayload = (Payload) temp;
+				this.incomingServMessage = (ServerMessage<?>) temp;
 
 				// Debug output
 				if (this.debugFlag == true) {
 
 					System.out.println("tClient| Payload recieved! Payload toString() reads: \n");
 					System.out.println("- - - - - - - - - -");
-					System.out.println(this.incomingPayload.toString());
+					System.out.println(this.incomingServMessage.toString());
 					System.out.println("- - - - - - - - - -");
 
 					if (this.debugObject != null) {
 
-						this.debugObject.addOutputPayload(incomingPayload);
+						this.debugObject.setRecievedServMessage(incomingServMessage);
 					}
 				}
 			}
@@ -380,12 +419,24 @@ public class tClientTCP implements Runnable {
 		// TODO: Decide and develop what to do with the received payload from here
 		// Intended functionality is NOT to simply receive a payload and toString() it.
 
-		if(debugFlag == true && this.incomingPayload != null) {
+		if(debugFlag == true && this.incomingServMessage != null) {
 			System.out.println("Payload recieved at time " + System.currentTimeMillis() + "\n");
-			System.out.println(this.incomingPayload.toString() + "\n");
+			System.out.println(this.incomingServMessage.toString() + "\n");
 		}
 
-
+		
+	}
+	
+	public boolean sendMessage(ClientMessage<?> message) {
+		
+		try {
+			this.objOutStream.writeObject(message);
+			return true;
+		} catch (IOException e) {
+			e.printStackTrace();
+			return false;
+		}
+		
 	}
 
 	public void performSignOn() {
@@ -426,39 +477,11 @@ public class tClientTCP implements Runnable {
 		}
 
 	}
-	
-	// pre-run preflights
-	public void preflight_run() {
-		// Condition where we have our local address and remote address
-		if(this.socketLocalAddr != null && this.socketRemoteAddr != null) {
-			
-			// Extended condition where our current socket is null
-			if(this.clientSocket == null) {
-				
-				this.clientSocket = new Socket();
-				try {
-					this.clientSocket.bind(socketLocalAddr);
-					this.clientSocket.setReuseAddress(true);
-					this.clientSocket.connect(socketRemoteAddr);
-				} catch (IOException e) {
-					// TODO Auto-generated catch block
-					e.printStackTrace();
-				}
-			}
-		}
-		
-		// Generate the clientSON and clientSOFF objects
-		this.clientSON = this.generateClientSignOn(this.clientSocket.getLocalAddress(),
-				this.clientSocket.getInetAddress());
-		
-		this.clientSOFF = this.generateClientSignOff(this.clientSocket.getLocalAddress(),
-				this.clientSocket.getInetAddress());
-	}
 
 	// Closes streams, and the clientSocketRemote
 	public void closeIO() {
 
-		this.incomingPayload = null;
+		this.incomingServMessage = null;
 		if (this.clientBuffInputStream != null && this.clientSocket != null) {
 
 			try {
@@ -476,9 +499,6 @@ public class tClientTCP implements Runnable {
 
 				e.printStackTrace();
 
-			} catch (NullPointerException e) {
-				
-				e.printStackTrace();
 			}
 		}
 	}
@@ -491,7 +511,7 @@ public class tClientTCP implements Runnable {
 			this.clientBuffInputStream = new BufferedInputStream(this.clientSocket.getInputStream());
 			this.objInpStream = new ObjectInputStream(this.clientBuffInputStream);
 			
-		} catch (java.io.EOFException e) {
+		} catch (EOFException e) {
 			
 			System.out.println("tClient| EOF exception with ObjectInputStream!\n");
 			
@@ -554,10 +574,50 @@ public class tClientTCP implements Runnable {
 		return signOff;
 	}
 
+	// pre-run preflights
+	public void preflight_run() {
+		// Condition where we have our local address and remote address
+		if(this.socketLocalAddr != null && this.socketRemoteAddr != null) {
+			
+			// Extended condition where our current socket is null
+			if(this.clientSocket == null) {
+				
+				this.clientSocket = new Socket();
+				try {
+					this.clientSocket.bind(socketLocalAddr);
+					this.clientSocket.setReuseAddress(true);
+					this.clientSocket.connect(socketRemoteAddr);
+				} catch (IOException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				}
+			}
+		}
+		
+		if(this.clientSocket.isBound() && !this.clientSocket.isConnected()) {
+			// If we have a valid socket that just needs connected, try connecting!
+			try {
+				this.clientSocket.connect(socketRemoteAddr);
+			} catch (IOException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+		}
+		
+		// Generate the clientSON and clientSOFF objects
+		this.clientSON = this.generateClientSignOn(this.clientSocket.getLocalAddress(),
+				this.clientSocket.getInetAddress());
+		
+		this.clientSOFF = this.generateClientSignOff(this.clientSocket.getLocalAddress(),
+				this.clientSocket.getInetAddress());
+	}
+
 	// runs the thread
 	@Override
 	public void run() {
-		// Preflight
+
+		
+		// preflights
 		this.preflight_run();
 		
 		// To begin, create the OutputStreams that we will use to send
@@ -566,6 +626,7 @@ public class tClientTCP implements Runnable {
 
 		// Create inputStreams and begin receiving
 		this.createInputStreams();
+
 
 		// Perform clientSignOn
 		// When clientSignOn is transmitted, assume that payloads are being transmitted.
@@ -577,7 +638,7 @@ public class tClientTCP implements Runnable {
 			// Receive the TCP transmission
 
 				// Receive Payload after SignOn
-				this.receivePayload();
+				this.receiveMessages();
 				
 		} else {
 			
@@ -587,31 +648,16 @@ public class tClientTCP implements Runnable {
 		
 		// Finally, send clientSignOff object
 		this.performSignOff();
-
 		this.closeIO();
 	}
 
 	public void stop() {
-
+		
 		this.stopFlag = true;
-
 		this.performSignOff();
-
 		this.closeIO();
 	}
 
-	public String getLocalAddrString() {
-		
-		if (this.socketLocalAddr != null) {
-			
-			return this.socketLocalAddr.toString();
-			
-		} else {
-			
-			throw new IllegalStateException("tClient| No socketLocalAddr set! Unable to return string! \n");
-		}
-	}
-	
 	public String getRemoteAddrString() {
 		
 		if (this.socketRemoteAddr != null) {
@@ -626,16 +672,21 @@ public class tClientTCP implements Runnable {
 
 	// Returns the current payload
 	// Throws an IllegalStateException if the IncomingPayload is currently null
-	public Payload getPayload() {
+	public ServerMessage getLastServerMessage() {
 		
-		if (this.incomingPayload != null) {
-			return this.incomingPayload;
+		if (this.incomingServMessage != null) {
+			return this.incomingServMessage;
 		} else {
 			
-			throw new IllegalStateException("tClient| incomingPayload is null! \n");
+			throw new IllegalStateException("tClient| incomingServMessage is null! \n");
 		}
 	}
 
+	// returns the PBQ
+	public PriorityBlockingQueue<ClientMessage<?>> getMessageQueue(){
+		return this.clientMessages;
+	}
+	
 	public void setDebugFlag(Boolean flag) {
 		this.debugFlag = flag;
 	}
@@ -643,7 +694,6 @@ public class tClientTCP implements Runnable {
 	public void setDebugObj(debugObj debug) {
 		this.debugObject = debug;
 	}
-	
 
 	public String getStatus() {
 		
@@ -677,13 +727,13 @@ public class tClientTCP implements Runnable {
 
 		status += "Payload status: \n";
 		
-		if (this.incomingPayload == null) {
-			status += "tClient| incomingPayload Currently null!\n";
+		if (this.incomingServMessage == null) {
+			status += "Payload not received! Currently: null \n";
 		} 
 		
-		if (this.incomingPayload instanceof Payload) {
+		if (this.incomingServMessage instanceof Payload) {
 			status += "Payload received. Current payload:\n";
-			status += this.incomingPayload.toString() + "\n";
+			status += this.incomingServMessage.toString() + "\n";
 		}
 
 		return status;

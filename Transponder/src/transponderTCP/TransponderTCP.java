@@ -1,13 +1,19 @@
-package transponder;
+package transponderTCP;
 
 import java.io.IOException;
+import java.net.InetAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.net.SocketAddress;
 import java.net.SocketException;
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.HashSet;
-
-public class TransponderTCP implements Runnable, Transponder{
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.PriorityBlockingQueue;
+import java.util.stream.Stream;
+import transponderTCP.MessageDateComparator;
+public class TransponderTCP implements Runnable{
 	
 	private int mode;
 	
@@ -15,43 +21,35 @@ public class TransponderTCP implements Runnable, Transponder{
 	
 	private HashSet<tClientTCP> tClientSet = new HashSet<tClientTCP>();
 	private HashSet<Thread> clientThreads = new HashSet<Thread>();
+
 	private HashSet<tServerTCP> tServerSet = new HashSet<tServerTCP>();
 	private HashSet<Thread> serverThreads = new HashSet<Thread>();
-		
+	
+	private HashSet<clientSignOn> csonSet = new HashSet<clientSignOn>();
+	private HashSet<clientSignOff> csoffSet = new HashSet<clientSignOff>();
+	
+	private PriorityBlockingQueue<ClientMessage<?>> clientMessages = new PriorityBlockingQueue<ClientMessage<?>>();
+	private PriorityBlockingQueue<ServerMessage<?>> serverMessages = new PriorityBlockingQueue<ServerMessage<?>>();
+	
 	private SocketAddress tServerSockAddr = null;
 	
 	private ServerSocket serverSocket = null;
 	
-	private Payload serverPayload = null;
-	
+	private ServerMessage<?> servMessage = null;
+
 	private debugObj debugObj = null;
 	
 	private boolean debugFlag = false;
-	
 	private boolean stopFlag = false;
-
-	// BE ADVISED: Constructors without localController parameters are intended for debug ONLY!
+	
 	public TransponderTCP(int mode) {
 		this.mode = mode;
 	}
 
-	// Constructor for Mode 1 (Server-DEBUG)
-	public TransponderTCP(ServerSocket servSock) {
-		this.mode = 1;
-
-		this.serverSocket = servSock;
-		
-		if(servSock.isBound()) {
-			this.tServerSockAddr = servSock.getLocalSocketAddress();
-		} else {
-			throw new IllegalStateException("servSock parameter must be bound when passing in!");
-		}
-	}
-	
 	// Constructor for Mode 1(Server-DEBUG)
-	public TransponderTCP(int mode, ServerSocket localServerSocket, SocketAddress localSockAddr) {
-		this.mode = mode;
-		this.serverSocket = localServerSocket;
+	public TransponderTCP(ServerSocket servSocket) {
+		this.mode = 1;
+		this.serverSocket = servSocket;
 		
 		// Check if the localServerSocket has connection details,
 		// but is not bound.
@@ -59,35 +57,29 @@ public class TransponderTCP implements Runnable, Transponder{
 		// This check will assign the localSockAddr details to the localServerSocket
 		
 		if(this.serverSocket.isBound() == false) {
-			if(localSockAddr != null) {
-				try {
-					localServerSocket.bind(localSockAddr);
-				} catch (IOException e) {
-					System.out.println("TransponderTCP| serverSocket binding issue!");
-					e.printStackTrace();
-				}
-			}
+			throw new IllegalStateException("transponderTCP| ServerSocket was not bound when passed in!");
 		}
 		
-		this.tServerSockAddr = localSockAddr;
+		this.tServerSockAddr = servSocket.getLocalSocketAddress();
 	}
-	
 
+	public TransponderTCP(Socket clientSock) {
+		this.mode = 2;
 
-	// Constructor for Mode 2 (Client-DEBUG)
-	public TransponderTCP(int mode, Socket clientSock, SocketAddress remoteAddr) {
-		this.mode = mode;
+		tClientTCP client = new tClientTCP(clientSock,this,this.clientMessages);
 
-		tClientTCP client = new tClientTCP(clientSock,this);
-
-		client.setRemoteSocketAddress(remoteAddr);
-
+		if(clientSock.isBound() == false) {
+			throw new IllegalStateException("transponderTCP| clientSock was not bound when passed in!");
+		}
+		
 		this.tClientSet.add(client);
 	}
 	
-	// Constructor for Mode 1(Server-Actual)
-	public TransponderTCP(int mode, ServerSocket localServerSocket, SocketAddress localSockAddr, ControllerMenu controller) {
-		this.mode = mode;
+	// Constructor for Mode 1(With controllerMenu)
+	// This constructor assumes a bound serverSocket.
+	
+	public TransponderTCP(ServerSocket localServerSocket, ControllerMenu controller) {
+		this.mode = 1;
 		this.serverSocket = localServerSocket;
 		this.localController = controller;
 		
@@ -97,34 +89,44 @@ public class TransponderTCP implements Runnable, Transponder{
 		// This check will assign the localSockAddr details to the localServerSocket
 		
 		if(this.serverSocket.isBound() == false) {
-			if(localSockAddr != null) {
-				try {
-					localServerSocket.bind(localSockAddr);
-				} catch (IOException e) {
-					System.out.println("TransponderTCP| serverSocket binding issue!");
-					e.printStackTrace();
-				}
-			}
+			
+			throw new IllegalStateException("TransponderTCP| ServerSocket passed into constructor is not bound!");
 		}
-		
-		this.tServerSockAddr = localSockAddr;
+		this.tServerSockAddr = localServerSocket.getLocalSocketAddress();
 	}
-
-	// Constructor for Mode 2 (Client-Actual)
-	public TransponderTCP(int mode, Socket clientSock, SocketAddress remoteAddr, ControllerMenu controller) {
-		this.mode = mode;
+	
+	// Constructor for Mode 2 (With controllerMenu)
+	public TransponderTCP(Socket clientSock, ControllerMenu controller) {
+		
+		this.mode = 2;
 		this.localController = controller;
 
-		tClientTCP client = new tClientTCP(clientSock,this);
+		tClientTCP client = new tClientTCP(clientSock,this,this.clientMessages);
 
-		client.setRemoteSocketAddress(remoteAddr);
+		client.setRemoteSocketAddress(clientSock.getRemoteSocketAddress());
 
 		this.tClientSet.add(client);
 	}
+
+	// Shuts down the IOstreams on the listening ServerSocket
+		public void closeIO() {
+
+			try {
+
+				this.serverSocket.close();
+
+			} catch (IOException e) {
+
+				System.out.println("TransponderTCP| closeIO failed!");
+				e.printStackTrace();
+
+			}
+		}
 	
 	// Run thread, configuring selected mode
 	@Override
 	public void run() {
+
 
 		if (this.mode == 1) {
 			if (this.serverSocket != null) {
@@ -143,6 +145,7 @@ public class TransponderTCP implements Runnable, Transponder{
 		if (this.mode == 2) {
 			this.confMode2();
 		}
+
 	}
 
 	// Close clients gracefully, stop threads (internally. Do NOT use Thread.stop()! Deprecated!)
@@ -165,45 +168,39 @@ public class TransponderTCP implements Runnable, Transponder{
 			e.printStackTrace();
 		}
 	}
-
-	public void setInitialServerPayload(Payload payload) {
-		if (this.serverPayload == null) {
-			this.serverPayload = payload;
+	
+	// Directs each server instance to send the directed message NOW!
+	public void sendServerMessage(ServerMessage<?> servMessage) {
+		this.servMessage = servMessage;
+		for(tServerTCP currServ : this.tServerSet) {
+			currServ.setServerMessage(servMessage);
+			currServ.transmitServerMessage(servMessage);
 		}
 	}
-	
-	public void setServerOpts(String args[], ServerSocket sock) {
-		// For the moment, args[] does nothing.
-		// We will use this block to set options as we
-		// develop and troubleshoot
 
-		try {
-			
-			sock.setReuseAddress(true);
-			
-		} catch (SocketException e) {
-			System.out.println("tServer| SocketException occured! Unable to setServerOpts()!");
-			e.printStackTrace();
-		}
-
+	public void setServerMessage(ServerMessage<?> servMessage) {
+		this.servMessage = servMessage;
 	}
 	
 	public void setControllerMenu(ControllerMenu localMenu) {
 		this.localController = localMenu;
 	}
 
-	public void setServerPayload(Payload payload) {
-		this.serverPayload = payload;
+	public void updateServerInstances(ServerMessage<?> servMessage) {
+		for(tServerTCP currServ : this.tServerSet) {
+			currServ.setServerMessage(servMessage);
+		}
 	}
 
 	// This method binds a specified tClient to the parameter endpoint
 	public void clientBindRemoteSocks(tClientTCP client, SocketAddress remoteEndpoint) {
 		
-		for (tClientTCP curr : this.tClientSet) {
+		for (tClientTCP currClient : this.tClientSet) {
 			
-			if (curr.equals(client)) {
-				curr.setRemoteSocketAddress(remoteEndpoint);
+			if (currClient.equals(client)) {
+				currClient.setRemoteSocketAddress(remoteEndpoint);
 			}
+			
 		}
 	}
 	
@@ -219,8 +216,8 @@ public class TransponderTCP implements Runnable, Transponder{
 
 	// This method configures Mode 1
 	// Mode 1 is server-only, no client
+	
 	public void confMode1() {
-
 		// Set mode, in case of mode switch
 		if (this.mode != 1) {
 			this.mode = 1;
@@ -233,51 +230,43 @@ public class TransponderTCP implements Runnable, Transponder{
 		if (this.tServerSockAddr == null) {
 			throw new IllegalStateException("tServerSockAddr not set!");
 		}
+
+		
+
+		tServerTCP server = null;
+		
+		// Try to create tServer instance every time we accept a connection
+		try {
+			server = new tServerTCP(this.serverSocket.accept(),this);
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		
+		server.setServerMessage(this.servMessage);
 		
 		//debug-specific actions when debugFlag set to TRUE
 		if (this.debugFlag == true) {
 			
-			System.out.println("TransponderTCP| DebugFlag set to TRUE! Setting debugFlag on server instance!");
-			System.out.println("TransponderTCP| Listening for connection at: " + this.serverSocket.getInetAddress() +"\n");
-			System.out.println("TransponderTCP| Payload set to: \n" + serverPayload.toString());
-		}
-
-		tServerTCP server = null;
-
-		// Listen for connection on serverSocket
-		try {
-			
-			server = new tServerTCP(this.serverSocket.accept());
-			
-		} catch (IOException e) {
-			
-			System.out.println("TransponderTCP| Failed to listen on socket!");
-			e.printStackTrace();
-			
-		}
-
-		if(this.debugFlag == true) {
+			System.out.println("DebugFlag set to TRUE! Setting debugFlag on server instance!");
 			server.setDebugFlag(true);
-			System.out.println("TransponderTCP| New client connected from:" + server.getRemoteAddr());
-
+			
+			System.out.println("transponderTCP| Listening for connection at: " + this.serverSocket.getInetAddress() +"\n");
+			System.out.println("transponderTCP| ServerMessage set to: \n" + this.servMessage.toString());
 		}
 
-		server.setOutgoingPayload(serverPayload);
 
 		Thread serverThread = new Thread(server);
 
-		serverThread.setName("tServer -" + server.getLocalAddr());
+		serverThread.setName("tServer| " + server.getLocalAddr());
 
 		this.tServerSet.add(server);
-
 		this.serverThreads.add(serverThread);
 
 		serverThread.start();
 
 		if (this.debugFlag == true) {
-
-			System.out.println("TransponderTCP| tServer Instance " + serverThread.getName() + " started!");
-
+			System.out.println("tServer Instance " + serverThread.getName() + " created!");
 		}
 	}
 
@@ -297,8 +286,8 @@ public class TransponderTCP implements Runnable, Transponder{
 				currClient.setDebugFlag(true);
 
 				if (this.debugObj == null) {
-					System.out.println("TransponderTCP| debugObj not set for client " + currClient.getRemoteAddrString());
-					System.out.println("TransponderTCP| Not using debugObj for debug purposes! Messages only!");
+					System.out.println("debugObj not set for client " + currClient.toString());
+					System.out.println("Not using debugObj for debug purposes! Messages only!");
 				}
 
 				if (this.debugObj instanceof debugObj) {
@@ -310,7 +299,7 @@ public class TransponderTCP implements Runnable, Transponder{
 			// clientThread hashSet
 			Thread addedThread = new Thread(currClient);
 			
-			addedThread.setName("tClient connection to: " + currClient.getRemoteAddrString());
+			addedThread.setName("tClient| Connected to: " + currClient.getRemoteAddrString());
 			
 			this.clientThreads.add(addedThread);
 			
@@ -318,7 +307,7 @@ public class TransponderTCP implements Runnable, Transponder{
 		}
 	}
 	
-	//TODO: Finish this method! Not sure if I want to start with re-initializing HashSets[tClientSet,clientThreads,tServerSet,serverThreads] or not...
+	// TODO: Future - relay mode?
 	public void confMode3() {
 
 		// Set mode, in case of mode switch
@@ -339,21 +328,6 @@ public class TransponderTCP implements Runnable, Transponder{
 	// Or else an exception will be thrown.
 	public void setDebugObject(debugObj debugObj) {
 		this.debugObj = debugObj;
-	}
-	
-	// Shuts down the IOstreams on the listening ServerSocket
-	public void closeIO() {
-
-		try {
-			this.serverSocket.close();
-
-		} catch (IOException e) {
-
-			System.out.println("TransponderTCP| closeIO failed!");
-			e.printStackTrace();
-
-		}
-
 	}
 
 	public void setDebugFlag(boolean flag) {
@@ -380,32 +354,62 @@ public class TransponderTCP implements Runnable, Transponder{
 		}
 
 		if (this.mode == 1) {
-			result += "TransponderTCP Mode: Server \n";
+			result += "Current Mode: Server \n";
 
 			if (this.tClientSet.size() == 0) {
 				result += "No clients connected!\n";
 				result += "Server socket listening on:\n";
-				result +=  this.serverSocket.getLocalSocketAddress().toString() + "\n";
-			} else {
-	
-				result += "Connected Clients:\n";
-		
-				int counter = 0;
-				for(tServerTCP currServer : this.tServerSet) {
-					counter++;
-					result += counter + currServer.getRemoteAddr().toString() + "\n";
-				}
+				result += "ServerSocket IP:Port" + this.serverSocket.getLocalSocketAddress().toString() + "\n";
 			}
 
+			for (tServerTCP currServer : this.tServerSet) {
+				result += currServer.getStatus() + "\n";
+			}
 		}
 
 		if (this.mode == 2) {
-			result += "TransponderTCP Mode: Client \n";
+			result += "Current Mode: Client \n";
+			result += "Printing status for each client associated with this TransponderTCP: +\n";
 
 			for (tClientTCP currClient : this.tClientSet) {
-				result += currClient.getStatus() +"\n";
+				result += currClient.getStatus();
 			}
 		}
+		
 		return result;
 	}
+	
+	// 
+	
+	public Stream<ClientMessage<?>> getClientStream() {
+		// Creates a master messageList, fills it with all the available messages in each 
+		// client's messageQueue, and sorts it by date. After that: Converts to a stream.
+		
+		ArrayList<ClientMessage<?>> messageList = new ArrayList<ClientMessage<?>>();
+		
+		for(tClientTCP currClient : this.tClientSet) {
+			
+			PriorityBlockingQueue<ClientMessage<?>> cliMessages = currClient.getMessageQueue();
+			
+			for(ClientMessage<?> currMessage : cliMessages) {
+				messageList.add(currMessage);
+			}
+		}
+		MessageDateComparator dateComparator = new MessageDateComparator();
+		
+		messageList.sort(dateComparator);
+		
+		return messageList.stream();
+	}
+	
+	public void processSignOn(clientSignOn cson) {
+		System.out.println("TransponderTCP| new signon from:" + cson.getClientAddr().toString());
+		this.csonSet.add(cson);
+	}
+	
+	public void processSignOff(clientSignOff csoff) {
+		System.out.println("TransponderTCP| new signoff from:" + csoff.getClientAddr().toString());
+		this.csoffSet.add(csoff);
+	}
+
 }

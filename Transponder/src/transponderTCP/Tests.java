@@ -1,4 +1,4 @@
-package transponder;
+package transponderTCP;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -35,20 +35,23 @@ public class Tests extends TestCase{
 		
 		try {
 			servSock = new ServerSocket();
-			testTranspServer = new TransponderTCP(1,servSock,serverSockAddr);
-			testTranspServer.setInitialServerPayload(testPayload);
+			
+			testTranspServer = new TransponderTCP(servSock);
+			testTranspServer.setServerMessage(testPayload);
 			testTranspServer.setDebugFlag(true);
 			testTranspServer.setDebugObject(dObj);
 			testTranspServer.run();
 			
 			clientSock.bind(clientSockAddr);
-			testTranspClient = new TransponderTCP(2,clientSock,serverSockAddr);
+			
+			testTranspClient = new TransponderTCP(clientSock);
 			testTranspClient.setDebugFlag(true);
 			testTranspClient.setDebugObject(dObj);
 			testTranspClient.run();
 
-			assertTrue(dObj.evaluatePayloadEquivalanceMulti());
-			System.out.println("dObj evaluatePayloadEquivalence result: " + dObj.evaluatePayloadEquivalanceMulti());
+			assertTrue(dObj.evaluateMessageEquivalanceMulti());
+			
+			System.out.println("dObj evaluatePayloadEquivalence result: " + dObj.evaluateMessageEquivalanceMulti());
 			
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
@@ -125,18 +128,11 @@ public class Tests extends TestCase{
 			e.printStackTrace();
 		}
 
-		tServerTCP testServer = null;
+		TransponderTCP testTransp = new TransponderTCP(serverSock);
 		
-		try {
-			testServer = new tServerTCP(serverSock.accept());
-		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
+		testTransp.setServerMessage(testPayload);
 		
-		testServer.setOutgoingPayload(testPayload);
-		
-		Thread serverThread = new Thread(testServer);
+		Thread serverThread = new Thread(testTransp);
 		
 		serverThread.start();
 	}
@@ -166,7 +162,7 @@ public class Tests extends TestCase{
 
 		clientThread.start();
 		
-		Payload testPayload = testClient.getPayload();
+		ServerMessage testPayload = testClient.getLastServerMessage();
 		
 		if(testPayload instanceof Payload) {
 			System.out.println("testClient: Payload received!\n" + testPayload.toString() +"\n");
@@ -191,13 +187,24 @@ public class Tests extends TestCase{
 			e.printStackTrace();
 		}
 
-		tServerTCP testServer = null;
+		// Try instantiating serverSock
+		try {
+			serverSock = new ServerSocket(6969, 1, serverAddr.getAddress());
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
 		
-		testServer = new tServerTCP();
+		TransponderTCP testTranspTCP = new TransponderTCP(serverSock);
+
+		testTranspTCP.setDebugFlag(true);
+		testTranspTCP.setServerMessage(testPayload);
+		testTranspTCP.setDebugObject(debugger);
+
+		Thread transpThread = new Thread(testTranspTCP);
 		
-		testServer.setOutgoingPayload(testPayload);
-		testServer.setDebugFlag(true);
-		testServer.setDebugObj(debugger);
+		transpThread.start();		
+		
 		
 		Socket localSock = null;
 		
@@ -206,7 +213,6 @@ public class Tests extends TestCase{
 					+ "Client Address:" + Inet4Address.getLoopbackAddress() + ":7000");
 			
 			localSock = new Socket(Inet4Address.getLoopbackAddress(),6969, Inet4Address.getLoopbackAddress(),7000);
-			
 		} catch (UnknownHostException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -220,15 +226,11 @@ public class Tests extends TestCase{
 		testClient.setDebugFlag(true);
 		testClient.setDebugObj(debugger);
 		
-		testServer.buildSocket(localSock.toString(), localSock.getLocalPort(),serverAddr.toString(), serverAddr.getPort());
-
-		Thread serverThread = new Thread(testServer);
 		Thread clientThread = new Thread(testClient);
-
-		serverThread.start();
+		
 		clientThread.start();
 
-		boolean payloadsMatch = debugger.evaluatePayloadEquivalanceMulti();
+		boolean payloadsMatch = debugger.evaluateMessageEquivalanceMulti();
 
 		System.out.println("testClientAndServer| debugObj payloads match? :" + payloadsMatch);
 		
@@ -260,60 +262,6 @@ public class Tests extends TestCase{
 		ControllerMenu testMenu = new ControllerMenu(testScanner);
 	}
 	
-	@Test
-	public void testTransponderServer() {
-		
-		InetSocketAddress serverAddr = new InetSocketAddress(InetAddress.getLoopbackAddress(),6969);
-		ServerSocket serverSock = null;
-		
-		// Try instantiating serverSock
-		try {
-			 serverSock = new ServerSocket(6969, 1, serverAddr.getAddress());
-		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
-		
-		TransponderTCP currTransponder = new TransponderTCP(1, serverSock, serverSock.getLocalSocketAddress());
-
-		Payload testPayload = new Payload(5,"RED");
-
-
-		currTransponder.setInitialServerPayload(testPayload);
-
-
-		// Create Transponder thread assign to transponderThread field
-		Thread transponderThread = new Thread(currTransponder);
-		currTransponder.setDebugFlag(true);
-
-		transponderThread.start();
-	}
-	
-	@Test
-	public void testTransponderClient() {
-		Socket mode2Sock = null;
-		
-		try {
-			mode2Sock = new Socket(Inet4Address.getLoopbackAddress(),6969, Inet4Address.getLoopbackAddress(),7000);
-		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
-
-		TransponderTCP currTransponder = new TransponderTCP(2, mode2Sock, mode2Sock.getRemoteSocketAddress());
-		currTransponder.setDebugFlag(true);
-
-		// Create Transponder thread assign to transponderThread field
-		Thread transponderThread = new Thread(currTransponder);
-
-		transponderThread.start();
-	}
-	
-	@Test
-	public void testTransponderClientServer() {
-		this.testTransponderServer();
-		this.testTransponderClient();
-	}
 	
 	@Test
 	public void testMultipleClients() {
@@ -335,7 +283,7 @@ public class Tests extends TestCase{
 		Payload testPayload = new Payload(7,"SIGMA");
 
 		testTranspTCP.setDebugFlag(true);
-		testTranspTCP.setInitialServerPayload(testPayload);
+		testTranspTCP.setServerMessage(testPayload);
 		
 		Thread transpThread = new Thread(testTranspTCP);
 		
@@ -350,7 +298,20 @@ public class Tests extends TestCase{
 			
 			InetSocketAddress clientAddrInc = new InetSocketAddress(InetAddress.getLoopbackAddress(),incPort);
 
-			tClientTCP newClient = new tClientTCP();
+			Socket clientSock = null;
+			
+			clientSock = new Socket();
+
+			try {
+
+				clientSock.bind(clientAddrInc);
+
+			} catch (IOException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+			
+			tClientTCP newClient = new tClientTCP(clientSock);
 			
 			newClient.setLocalSocketAddress(clientAddrInc);
 			newClient.setRemoteSocketAddress(serverAddr);
@@ -360,7 +321,7 @@ public class Tests extends TestCase{
 			newClient.setDebugFlag(true);
 			
 			clientSet.add(newClient);
-			
+
 		}
 		
 		for(tClientTCP currClient : clientSet) {
