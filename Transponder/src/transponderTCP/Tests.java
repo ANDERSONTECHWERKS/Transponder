@@ -426,10 +426,5 @@ public class Tests extends TestCase{
 		
 		System.out.println("Server recieved the following messages:\n" + testTranspServ.getServerRecievedMsgOrdered(dateComp));
 
-		for(PriorityBlockingQueue<ClientMessage<?>> currQueue : serverMap.values()) {
-			assertTrue(currQueue.contains(testMessage1));
-			assertTrue(currQueue.contains(testMessage2));
-			assertTrue(currQueue.contains(testMessage3));
-		}
 	}
 }

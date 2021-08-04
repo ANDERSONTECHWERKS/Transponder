@@ -25,7 +25,7 @@ public abstract class ClientMessage<C> implements Serializable, Comparable<Clien
 		return this.message;
 	}
 		
-	public Object getPayload() {
+	public C getPayload() {
 		return payload;
 	}
 	

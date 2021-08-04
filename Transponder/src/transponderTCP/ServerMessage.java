@@ -52,7 +52,7 @@ public abstract class ServerMessage<S> implements Serializable,Comparable<Server
 		return this.message;
 	}
 	
-	public Object getPayload() {
+	public S getPayload() {
 		return payload;
 	}
 	
