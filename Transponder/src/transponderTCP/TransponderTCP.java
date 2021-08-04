@@ -7,6 +7,7 @@ import java.net.Socket;
 import java.net.SocketAddress;
 import java.net.SocketException;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.concurrent.BlockingQueue;
@@ -29,8 +30,8 @@ public class TransponderTCP implements Runnable {
 	private HashSet<clientSignOn> csonSet = new HashSet<clientSignOn>();
 	private HashSet<clientSignOff> csoffSet = new HashSet<clientSignOff>();
 
-	private PriorityBlockingQueue<ClientMessage<?>> clientMessages = new PriorityBlockingQueue<ClientMessage<?>>();
-	private PriorityBlockingQueue<ServerMessage<?>> serverMessages = new PriorityBlockingQueue<ServerMessage<?>>();
+	private PriorityBlockingQueue<ClientMessage<?>> clientMessagesMaster = new PriorityBlockingQueue<ClientMessage<?>>();
+	private PriorityBlockingQueue<ServerMessage<?>> serverMessagesMaster = new PriorityBlockingQueue<ServerMessage<?>>();
 
 	private SocketAddress tServerSockAddr = null;
 
@@ -67,7 +68,7 @@ public class TransponderTCP implements Runnable {
 	public TransponderTCP(Socket clientSock) {
 		this.mode = 2;
 
-		tClientTCP client = new tClientTCP(clientSock, this, this.clientMessages);
+		tClientTCP client = new tClientTCP(clientSock, this, this.clientMessagesMaster);
 
 		if (clientSock.isBound() == false) {
 			throw new IllegalStateException("transponderTCP| clientSock was not bound when passed in!");
@@ -102,13 +103,42 @@ public class TransponderTCP implements Runnable {
 		this.mode = 2;
 		this.localController = controller;
 
-		tClientTCP client = new tClientTCP(clientSock, this, this.clientMessages);
+		tClientTCP client = new tClientTCP(clientSock, this, this.clientMessagesMaster);
 
 		client.setRemoteSocketAddress(clientSock.getRemoteSocketAddress());
 
 		this.tClientSet.add(client);
 	}
 
+	
+	// Adds a clientMessage<?> to our clientMessagesMaster queue
+	public synchronized void addCliMessageToMaster(ClientMessage<?> cliMess) {
+		this.clientMessagesMaster.put(cliMess);
+	}
+	
+	// Adds a clientMessage<?> to our clientMessagesMaster queue
+	public void addServMessageToMaster(ServerMessage<?> servMess) {
+		this.serverMessagesMaster.put(servMess);
+	}
+	
+	public void addClient(Socket cliSock) {
+		tClientTCP addClient = new tClientTCP(cliSock);
+		
+		
+		InetAddress clientAddrLocal = cliSock.getLocalAddress();
+		InetAddress clientAddrRemote = cliSock.getInetAddress();
+		
+		addClient.setLocalSocketAddress(cliSock.getLocalSocketAddress());
+		addClient.setRemoteSocketAddress(cliSock.getRemoteSocketAddress());
+		
+		addClient.generateClientSignOn(clientAddrLocal, clientAddrRemote);
+		addClient.generateClientSignOff(clientAddrLocal, clientAddrRemote);
+		addClient.setParentTransponder(this);
+		
+		this.tClientSet.add(addClient);
+		
+	}
+	
 	// Shuts down the IOstreams on the listening ServerSocket
 	public void closeIO() {
 
@@ -133,7 +163,7 @@ public class TransponderTCP implements Runnable {
 
 				// listen-loop
 				while (this.stopFlag == false) {
-					this.confMode1();
+					this.confServer();
 				}
 
 				// After we leave the listen-loop, close IO.
@@ -143,7 +173,7 @@ public class TransponderTCP implements Runnable {
 		}
 
 		if (this.mode == 2) {
-			this.confMode2();
+			this.confClient();
 		}
 
 	}
@@ -188,10 +218,12 @@ public class TransponderTCP implements Runnable {
 
 	// Directs each server instance to send the directed message NOW!
 	public void serverSendMessage(ServerMessage<?> servMessage) {
+		
 		this.servMessage = servMessage;
+		
 		for (tServerTCP currServ : this.tServerSet) {
-			currServ.setServerMessage(servMessage);
-			currServ.transmitServerMessage(servMessage);
+			currServ.setServerMessage(this.servMessage);
+			currServ.transmitServerMessage(this.servMessage);
 		}
 	}
 
@@ -234,7 +266,7 @@ public class TransponderTCP implements Runnable {
 	// This method configures Mode 1
 	// Mode 1 is server-only, no client
 
-	private void confMode1() {
+	private void confServer() {
 		// Set mode, in case of mode switch
 		if (this.mode != 1) {
 			this.mode = 1;
@@ -275,7 +307,7 @@ public class TransponderTCP implements Runnable {
 
 		Thread serverThread = new Thread(server);
 
-		serverThread.setName("tServer| " + server.getLocalAddr());
+		serverThread.setName("tServer| " + server.getLocalAddr()+":" + server.getLocalPort());
 
 		this.tServerSet.add(server);
 		this.serverThreads.add(serverThread);
@@ -289,7 +321,7 @@ public class TransponderTCP implements Runnable {
 
 	// This method configures Mode 2
 	// Mode 2 is client-only, no server
-	private void confMode2() {
+	private void confClient() {
 
 		// Set mode, in case of mode switch
 		if (this.mode != 2) {
@@ -325,7 +357,7 @@ public class TransponderTCP implements Runnable {
 	}
 
 	// TODO: Future - relay mode?
-	private void confMode3() {
+	private void confRelay() {
 
 		// Set mode, in case of mode switch
 		if (this.mode != 3) {
@@ -434,22 +466,35 @@ public class TransponderTCP implements Runnable {
 	
 	// Retrieves an ArrayList of ClientMessages logged with the server, sorted by timestamp.
 
-	public ArrayList<ClientMessage<?>> serverRetrieveMessages() {
+	public HashMap<String,PriorityBlockingQueue<ClientMessage<?>>> getServerRecievedMessageMap() {
 
-		ArrayList<ClientMessage<?>> messageList = new ArrayList<ClientMessage<?>>();
-
+		HashMap<String,PriorityBlockingQueue<ClientMessage<?>>> messageMap = new HashMap<String,PriorityBlockingQueue<ClientMessage<?>>>();
+		
 		for (tServerTCP currServer : this.tServerSet) {
 
 			PriorityBlockingQueue<ClientMessage<?>> cliMessages = currServer.getMessageQueue();
 
-			for (ClientMessage<?> currMessage : cliMessages) {
+			messageMap.put(currServer.getRemoteAddr(), cliMessages);
+		}
+		
+
+		return messageMap;
+	}
+	
+	public ArrayList<ClientMessage<?>> getServerRecievedMsgOrdered(Comparator<ClientMessage<?>> comparator){
+		ArrayList<ClientMessage<?>> messageList = new ArrayList<ClientMessage<?>>();
+		
+		for (tServerTCP currServer : this.tServerSet) {
+
+			PriorityBlockingQueue<ClientMessage<?>> cliMessages = currServer.getMessageQueue();
+
+			for(ClientMessage<?> currMessage : cliMessages) {
 				messageList.add(currMessage);
 			}
 		}
-		MessageDateComparator dateComparator = new MessageDateComparator();
-
-		messageList.sort(dateComparator);
-
+		
+		messageList.sort(comparator);
+		
 		return messageList;
 	}
 
@@ -476,7 +521,7 @@ public class TransponderTCP implements Runnable {
 	}
 
 	public ClientMessage<?> clientGetLastMessage() throws InterruptedException {
-		return this.clientMessages.take();
+		return this.clientMessagesMaster.take();
 	}
 
 }

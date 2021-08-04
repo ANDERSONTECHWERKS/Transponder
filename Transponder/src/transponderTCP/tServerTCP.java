@@ -37,7 +37,9 @@ public class tServerTCP implements Runnable {
 	private ObjectInputStream objInputStream = null;
 	
 	private ServerMessage<?> currServMessage = null;
+	
 	private PriorityBlockingQueue<ClientMessage<?>> clientMessages = new PriorityBlockingQueue<ClientMessage<?>>();
+	private PriorityBlockingQueue<ServerMessage<?>> serverMessages = new PriorityBlockingQueue<ServerMessage<?>>();
 
 	private debugObj debugObject = null;
 	
@@ -45,9 +47,7 @@ public class tServerTCP implements Runnable {
 	private boolean debugFlag = false;
 	
 	private TransponderTCP parentTransponder = null;
-	
-	private int currServMessageHash;
-	
+		
 	
 	public tServerTCP(Socket serverSocket) {
 		this.remoteSocketTCP = serverSocket;
@@ -62,7 +62,7 @@ public class tServerTCP implements Runnable {
 	// field is populated with a Payload object, false if not.
 	public boolean isServerMessagePresent() {
 		
-		if (this.currServMessage != null && this.currServMessage instanceof ServerMessage) {
+		if (this.currServMessage != null && this.currServMessage instanceof ServerMessage<?>) {
 			return true;
 			
 		} else {
@@ -103,8 +103,23 @@ public class tServerTCP implements Runnable {
 					}
 					
 					// add this to the list of messages we recieved
-					this.clientMessages.add(inpMessage);
+					this.clientMessages.put(inpMessage);
 				}
+				
+				if(input instanceof ServerMessage<?>) {
+
+					ServerMessage<?> inpMessage = (ServerMessage<?>)input;
+
+					if (this.debugFlag == true) {
+						System.out.println("tServer| Received ServerMessage class!");
+						System.out.println("tServer| ServerMessage received in serviceStart() method!");
+						System.out.println("tServer| Message reads: \n" + inpMessage.toString());
+					}
+					
+					// add this to the list of messages we recieved
+					this.serverMessages.put(inpMessage);
+				}
+				
 
 				// TODO: If we receive another cSignOn object after the initial connection...
 				// Do...something? Think about this.
@@ -139,6 +154,7 @@ public class tServerTCP implements Runnable {
 			}
 			
 		} catch (ClassNotFoundException | IOException e) {
+			System.out.println("tServer| Class not found!");
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
@@ -173,7 +189,7 @@ public class tServerTCP implements Runnable {
 
 	// setOutgoingPayload assigns an outgoing payload object to this
 	// tServer's currServMessage field.
-	public void setServerMessage(ServerMessage servMessage) {
+	public void setServerMessage(ServerMessage<?> servMessage) {
 		
 		// debug output for when debugFlag set to TRUE
 		if (this.debugFlag == true) {
@@ -181,6 +197,10 @@ public class tServerTCP implements Runnable {
 		}
 
 		this.currServMessage = servMessage;
+	}
+	
+	public void setParentTransponder(TransponderTCP parent) {
+		this.parentTransponder = parent;
 	}
 
 	public void createInputStreams() {
@@ -240,11 +260,22 @@ public class tServerTCP implements Runnable {
 		}
 
 	}
+	
+	private void syncTranspMessages() {
+		
+		for(ClientMessage<?> currCliMess : this.clientMessages) {
+			this.parentTransponder.addCliMessageToMaster(currCliMess);
+		}
+		
+		for(ServerMessage<?> currServMess : this.serverMessages) {
+			this.parentTransponder.addServMessageToMaster(currServMess);
+		}
+	}
 
 	// transmitPayload checks for the presence of an currServMessage,
 	// then creates an outputStream, as well as an associated object output stream
 	// (objOutputStream) and writes the object to the output
-	public void transmitServerMessage(ServerMessage servMessage) {
+	public void transmitServerMessage(ServerMessage<?> servMessage) {
 
 		if (this.currServMessage == null) {
 			throw new IllegalArgumentException("tServer| ServerMessage not set!");
@@ -293,9 +324,9 @@ public class tServerTCP implements Runnable {
 					}
 
 					// Transmit the object via ObjOutputStream!
-					this.objOutputStream.reset();
 					this.objOutputStream.writeObject(servMessage);
 					this.objOutputStream.flush();
+					this.objOutputStream.reset();
 				}
 			}
 
@@ -342,8 +373,18 @@ public class tServerTCP implements Runnable {
 
 	public boolean checkMessageIntegrity(Object o) {
 		
-		if(o instanceof ServerMessage) {
-			ServerMessage inpPayload = (ServerMessage)o;
+		if(o instanceof ServerMessage<?>) {
+			ServerMessage<?> inpPayload = (ServerMessage<?>)o;
+			return true;
+		}
+		
+		if(o instanceof ClientMessage<?>) {
+			ClientMessage<?> inpPayload = (ClientMessage<?>)o;
+			return true;
+		}
+		
+		if(o instanceof ChatMessage) {
+			ChatMessage inpPayload = (ChatMessage)o;
 			return true;
 		}
 		
@@ -424,6 +465,7 @@ public class tServerTCP implements Runnable {
 
 		while(stopFlag == false) {
 			serviceStart();
+			syncTranspMessages();
 		}
 		
 		// After we close from the listening loop - close our IO and finish the run method.
@@ -469,14 +511,23 @@ public class tServerTCP implements Runnable {
 	public String getLocalAddr() {
 		
 		if (this.remoteSocketTCP == null) {
-			return "tServer| remoteSocketTCP not set! Cannot provide address!";
+			throw new IllegalStateException("tServer| remoteSocketTCP not set! Cannot provide address!");
 		}
 		
 		return this.remoteSocketTCP.getLocalAddress().toString();
 	}
+	
+	public int getLocalPort() {
+		
+		if (this.remoteSocketTCP == null) {
+			throw new IllegalStateException("tServer| remoteSocketTCP not set! Cannot provide port!");
+		}
+		
+		return this.remoteSocketTCP.getPort();
+	}
 
 	// returns the PBQ
-	public PriorityBlockingQueue<ClientMessage<?>> getMessageQueue(){
+	public synchronized PriorityBlockingQueue<ClientMessage<?>> getMessageQueue(){
 		return this.clientMessages;
 	}
 	

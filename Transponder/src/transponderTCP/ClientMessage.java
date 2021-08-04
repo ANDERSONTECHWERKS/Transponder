@@ -3,7 +3,7 @@ package transponderTCP;
 import java.io.Serializable;
 import java.util.Date;
 
-public abstract class ClientMessage<C> implements Serializable{
+public abstract class ClientMessage<C> implements Serializable, Comparable<ClientMessage<C>>{
 	
 	/**
 	 * 

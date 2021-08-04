@@ -8,9 +8,13 @@ import java.net.InetSocketAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.net.SocketAddress;
+import java.net.SocketException;
 import java.net.UnknownHostException;
+import java.util.Comparator;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Scanner;
+import java.util.concurrent.PriorityBlockingQueue;
 
 import org.junit.Assert;
 import org.junit.Test;
@@ -35,19 +39,23 @@ public class Tests extends TestCase{
 		
 		try {
 			servSock = new ServerSocket();
+			servSock.bind(serverSockAddr);
 			
 			testTranspServer = new TransponderTCP(servSock);
 			testTranspServer.setServerMessage(testPayload);
 			testTranspServer.setDebugFlag(true);
 			testTranspServer.setDebugObject(dObj);
-			testTranspServer.run();
+			Thread transpServThread = new Thread(testTranspServer);
+			transpServThread.start();
 			
 			clientSock.bind(clientSockAddr);
+			clientSock.connect(serverSockAddr);
 			
 			testTranspClient = new TransponderTCP(clientSock);
 			testTranspClient.setDebugFlag(true);
 			testTranspClient.setDebugObject(dObj);
-			testTranspClient.run();
+			Thread transpClientThread = new Thread(testTranspClient);
+			transpClientThread.start();
 
 			assertTrue(dObj.evaluateMessageEquivalanceMulti());
 			
@@ -91,6 +99,8 @@ public class Tests extends TestCase{
 		InputStream input = new ByteArrayInputStream(createMode1Input.getBytes());
 		Scanner testScanner = new Scanner(input);
 		ControllerMenu testMenu = new ControllerMenu(testScanner);
+
+		
 		input = new ByteArrayInputStream(createClientSocketInput.getBytes());
 		testScanner = new Scanner(input);
 		
@@ -331,6 +341,95 @@ public class Tests extends TestCase{
 						
 		for(Thread currThread : clientThreadSet) {
 			currThread.start();
+		}
+	}
+	
+	@Test
+	public void testMultipleClientsMultiMessage() {
+		InetSocketAddress serverAddr = new InetSocketAddress(InetAddress.getLoopbackAddress(),6969);
+		InetSocketAddress clientAddr = new InetSocketAddress(InetAddress.getLoopbackAddress(),7000);
+		ServerSocket servSock = null;
+		
+		ClientMessage<String> testMessage1 = new ChatMessage("Test1");
+		
+		ClientMessage<String> testMessage2 = new ChatMessage("Test2");
+		
+		ClientMessage<String> testMessage3 = new ChatMessage("Test3");
+		
+		try {
+			servSock = new ServerSocket();
+			servSock.bind(serverAddr);
+			
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		
+		TransponderTCP testTranspServ = new TransponderTCP(servSock);
+
+		Payload testPayload = new Payload(7,"SIGMA");
+		Payload testPayload2 = new Payload(8,"Large Fries");
+		
+		testTranspServ.setDebugFlag(true);
+		testTranspServ.setServerMessage(testPayload);
+		
+		Thread transpThread = new Thread(testTranspServ);
+		
+		transpThread.start();
+		
+		TransponderTCP testTranspCli = new TransponderTCP(2);
+		testTranspCli.setDebugFlag(true);
+
+		for(int i = 0; i < 10; i++) {
+			
+			int incPort = clientAddr.getPort() + i;
+			
+			InetSocketAddress clientAddrInc = new InetSocketAddress(InetAddress.getLoopbackAddress(),incPort);
+
+			Socket clientSock = new Socket();
+			
+			try {
+				clientSock.setReuseAddress(true);
+			} catch (SocketException e1) {
+				// TODO Auto-generated catch block
+				e1.printStackTrace();
+			}
+
+			try {
+
+				clientSock.bind(clientAddrInc);
+				clientSock.connect(serverAddr);
+			} catch (IOException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+			
+			testTranspCli.addClient(clientSock);
+
+		}
+		
+		Thread transpClientThread = new Thread(testTranspCli);
+		transpClientThread.start();
+		
+		testTranspCli.clientSendMessage(testMessage1);
+		testTranspCli.clientSendMessage(testMessage2);
+		testTranspCli.clientSendMessage(testMessage3);
+
+		
+		testTranspServ.serverSendMessage(testPayload2);
+
+		
+		
+		HashMap<String,PriorityBlockingQueue<ClientMessage<?>>> serverMap = testTranspServ.getServerRecievedMessageMap();
+		
+		Comparator<ClientMessage<?>> dateComp = new MessageDateComparator();
+		
+		System.out.println("Server recieved the following messages:\n" + testTranspServ.getServerRecievedMsgOrdered(dateComp));
+
+		for(PriorityBlockingQueue<ClientMessage<?>> currQueue : serverMap.values()) {
+			assertTrue(currQueue.contains(testMessage1));
+			assertTrue(currQueue.contains(testMessage2));
+			assertTrue(currQueue.contains(testMessage3));
 		}
 	}
 }
