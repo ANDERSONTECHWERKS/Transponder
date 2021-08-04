@@ -441,6 +441,14 @@ public class TransponderTCP implements Runnable{
 		
 	}
 	
+	public void clientSendMessage(ClientMessage<?> message) {
+		// Sends the specified message to all clients.
+		// TODO: Think about how we can specify clients to send messages to in the future.
+		for(tClientTCP currClient : this.tClientSet) {
+			currClient.clientSendMessage(message);
+		}
+	}
+	
 	public ClientMessage<?> clientGetLastMessage() throws InterruptedException{
 		return this.clientMessages.take();
 	}
