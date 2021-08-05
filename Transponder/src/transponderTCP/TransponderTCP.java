@@ -555,10 +555,12 @@ public class TransponderTCP implements Runnable {
 	}
 
 	public ClientMessage<?> clientGetLastCM() throws InterruptedException {
+		this.newClientMessage = false;
 		return this.clientMessagesMaster.take();
 	}
 	
 	public ServerMessage<?> clientGetLastSM() throws InterruptedException {
+		this.newServerMessage = false;
 		return this.serverMessagesMaster.take();
 	}
 
