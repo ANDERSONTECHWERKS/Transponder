@@ -289,6 +289,8 @@ public class tServerTCP implements Runnable {
 						System.out.println("tServer| Writing Object: \n" + servMessage.toString());
 					}
 
+					this.preflight();
+					
 					// Transmit the object via ObjOutputStream!
 					this.objOutputStream.writeObject(servMessage);
 					this.objOutputStream.flush();
@@ -420,6 +422,30 @@ public class tServerTCP implements Runnable {
 		// Keep in this block until we know where we want it to go
 		// TL;DR: If the debugFlag is true, we will output any/all relevant
 		// socket and stream information before we transmit
+		
+		if(this.remoteSocketTCP != null) {
+			if(!this.remoteSocketTCP.isBound()) {
+				throw new IllegalStateException("tServer| Remote socket is unbound!");
+			}
+			
+			if(this.remoteSocketTCP.isClosed()) {
+				throw new IllegalStateException("tServer| Remote socket is closed!");
+			}
+			
+			if(this.remoteSocketTCP.isConnected()) {
+				if(this.objInputStream == null && this.objOutputStream == null) {
+					
+					if(this.objOutputStream == null && this.objInputStream == null && this.serverBuffOutStream == null
+							&& this.serverBuffOutStream == null &&
+							this.inputStream == null && this.outputStream == null) {
+						
+						this.createOutputStreams();
+						this.createInputStreams();
+					}
+				}
+			}
+		}
+		
 		if (this.debugFlag == true) {
 			System.out.println("tServer| ServerSocket and Stream Status:");
 
@@ -449,10 +475,11 @@ public class tServerTCP implements Runnable {
 				System.out.println("tServer| debugPayloadIntegrity ran...");
 				System.out.println("tServer| Transmitting Payload...");
 			}
+			
+			
 
 			System.out.println("tServer| Serving Client connected from: "
 					+ this.remoteSocketTCP.getRemoteSocketAddress().toString());
-
 		}
 	}
 
@@ -462,15 +489,9 @@ public class tServerTCP implements Runnable {
 
 		// Set the server options for the newly-created socket
 		// setServerOpts is where we will pass misc. options in the future!
-		this.setServerOpts(null);
+		// this.setServerOpts(null);
 
-		// Handshake_1: Create OutputStreams
-		this.createOutputStreams();
-
-		// Handshake_2: Create InputStreams
-		this.createInputStreams();
-
-		// pre-flights after IOStream creation
+		// pre-flights, includes IOStream creation
 		this.preflight();
 
 		// Listen and begin service

@@ -172,7 +172,7 @@ public class Tests extends TestCase{
 
 		clientThread.start();
 		
-		ServerMessage testPayload = testClient.getLastServerMessage();
+		ServerMessage<?> testPayload = testClient.getLastServerMessage();
 		
 		if(testPayload instanceof Payload) {
 			System.out.println("testClient: Payload received!\n" + testPayload.toString() +"\n");
@@ -197,13 +197,6 @@ public class Tests extends TestCase{
 			e.printStackTrace();
 		}
 
-		// Try instantiating serverSock
-		try {
-			serverSock = new ServerSocket(6969, 1, serverAddr.getAddress());
-		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
 		
 		TransponderTCP testTranspTCP = new TransponderTCP(serverSock);
 
@@ -223,6 +216,7 @@ public class Tests extends TestCase{
 					+ "Client Address:" + Inet4Address.getLoopbackAddress() + ":7000");
 			
 			localSock = new Socket(Inet4Address.getLoopbackAddress(),6969, Inet4Address.getLoopbackAddress(),7000);
+			
 		} catch (UnknownHostException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -417,6 +411,12 @@ public class Tests extends TestCase{
 		
 		testTranspServ.allServersSendMessage(testPayload);
 		testTranspServ.allServersSendMessage(testPayload2);
+		
+		System.out.println("Client Master ClientMessage list contains the following:" + testTranspCli.getMasterCliMsg().toString()+ "\n");
+		System.out.println("Client Master ServerMessage list contains the following:" + testTranspCli.getMasterServMsg().toString()+ "\n");
+		System.out.println("Server Master ClientMessage list contains the following:" + testTranspServ.getMasterCliMsg().toString()+ "\n");
+		System.out.println("Server Master ServerMessage list contains the following:" + testTranspServ.getMasterServMsg().toString()+ "\n");
+		
 	}
 	
 	@Test

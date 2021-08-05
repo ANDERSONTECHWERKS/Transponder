@@ -87,7 +87,7 @@ public class TransponderTCP implements Runnable {
 		this.mode = 2;
 
 		tClientTCP client = new tClientTCP(clientSock);
-		
+
 		client.setParentTransponder(this);
 
 		this.tClientSet.add(client);
