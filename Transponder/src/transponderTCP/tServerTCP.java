@@ -160,11 +160,13 @@ public class tServerTCP implements Runnable {
 			}
 			
 		} catch (ClassNotFoundException e) {
-			System.out.println("tServer| Class not found!");
+			System.out.println("tServer| Class not found! Shutting down!");
+			this.stop();
 			e.printStackTrace();
 			
 		} catch (IOException e) {
-			System.out.println("tServer| IO Exception!");
+			System.out.println("tServer| IO Exception! Shutting down!");
+			this.stop();
 			e.printStackTrace();
 
 		}
