@@ -50,48 +50,6 @@ public class tClientTCP implements Runnable {
 
 	private TransponderTCP parentTransponder = null;
 
-	PriorityBlockingQueue<ClientMessage<?>> clientMessages = new PriorityBlockingQueue<ClientMessage<?>>();
-	PriorityBlockingQueue<ServerMessage<?>> serverMessages = new PriorityBlockingQueue<ServerMessage<?>>();
-
-	tClientTCP(Socket localSocket, PriorityBlockingQueue<ClientMessage<?>> cMessages) {
-		// Assign socket to field
-		this.clientSocket = localSocket;
-
-		// Check if we have a localSocket that is already bound. Pull the
-		// LocalSocketAddress from it.
-		if (localSocket.isBound()) {
-
-			// Output for debugFlag
-			if (this.debugFlag == true) {
-
-				System.out.println("tClient| localSocket already bound on creation!");
-				System.out.println(
-						"tClient| Setting socketLocalAddr to " + localSocket.getLocalSocketAddress().toString());
-			}
-
-			this.socketLocalAddr = localSocket.getLocalSocketAddress();
-			this.socketRemoteAddr = localSocket.getRemoteSocketAddress();
-		}
-
-		// Check if the localSocket is connected. If it is, pull the RemoteSocketAddress
-		// from it.
-		if (localSocket.isConnected()) {
-
-			// Output for debugFlag
-			if (this.debugFlag == true) {
-
-				System.out.println("tClient| localSocket already connected on creation!");
-				System.out.println(
-						"tClient| Setting socketRemoteAddr to " + localSocket.getRemoteSocketAddress().toString());
-			}
-
-			this.socketRemoteAddr = localSocket.getRemoteSocketAddress();
-
-			// clientMessages queue used for storage and retrieval of messages
-			this.clientMessages = cMessages;
-		}
-	}
-
 	tClientTCP(Socket localSocket) {
 		// Assign socket to field
 		this.clientSocket = localSocket;
@@ -106,6 +64,8 @@ public class tClientTCP implements Runnable {
 				System.out.println("tClient| localSocket already bound on creation!");
 				System.out.println(
 						"tClient| Setting socketLocalAddr to " + localSocket.getLocalSocketAddress().toString());
+				System.out.println(
+						"tClient| Setting socketRemoteAddr to " + localSocket.getRemoteSocketAddress().toString());
 			}
 
 			this.socketLocalAddr = localSocket.getLocalSocketAddress();
@@ -121,13 +81,11 @@ public class tClientTCP implements Runnable {
 
 				System.out.println("tClient| localSocket already connected on creation!");
 				System.out.println(
-						"tClient| Setting socketRemoteAddr to " + localSocket.getRemoteSocketAddress().toString());
+						"tClient| localSocket connected to:" + localSocket.getRemoteSocketAddress().toString());
 			}
 
 			this.socketRemoteAddr = localSocket.getRemoteSocketAddress();
 
-			// clientMessages queue used for storage and retrieval of messages
-			this.clientMessages = new PriorityBlockingQueue<ClientMessage<?>>();
 		}
 	}
 
@@ -137,7 +95,7 @@ public class tClientTCP implements Runnable {
 	// If this isn't happening: Make it happen at the ControllerMenu /
 	// TransponderTCP level!
 	// Includes reference to parent transponderTCP object for callbacks!
-	tClientTCP(Socket localSocket, TransponderTCP parent, PriorityBlockingQueue<ClientMessage<?>> cMessages) {
+	tClientTCP(Socket localSocket, TransponderTCP parent) {
 
 		// Assign socket to field
 		this.clientSocket = localSocket;
@@ -170,8 +128,6 @@ public class tClientTCP implements Runnable {
 			}
 			this.socketRemoteAddr = localSocket.getRemoteSocketAddress();
 
-			this.clientMessages = cMessages;
-
 		}
 	}
 
@@ -192,16 +148,6 @@ public class tClientTCP implements Runnable {
 		this.socketLocalAddr = localAddress;
 	}
 
-	private void syncTranspMessages() {
-
-		for (ClientMessage<?> currCliMess : this.clientMessages) {
-			this.parentTransponder.addCliMessageToMaster(currCliMess);
-		}
-
-		for (ServerMessage<?> currServMess : this.serverMessages) {
-			this.parentTransponder.addServMessageToMaster(currServMess);
-		}
-	}
 
 	public void connectLocalTCP() {
 
@@ -354,7 +300,7 @@ public class tClientTCP implements Runnable {
 		return true;
 	}
 
-	public void receiveMessages() {
+	public synchronized void receiveMessages() {
 
 		// TODO: Create type-check for this.incomingPayload
 		// This is likely a huge security issue to just *blatantly accept* objects and
@@ -363,18 +309,18 @@ public class tClientTCP implements Runnable {
 
 		try {
 
-			Object temp = objInpStream.readObject();
+			Object inputObj = objInpStream.readObject();
 
-			if (temp instanceof ClientMessage<?>) {
+			if (inputObj instanceof ClientMessage<?>) {
 				// If we recieve a clientMessage - throw it into the clientMessages queue
-				this.clientMessages.put((ClientMessage<?>) temp);
+				this.parentTransponder.getMasterCliMsg().add((ClientMessage<?>) inputObj);
 
 				// Debug output
 				if (this.debugFlag == true) {
 
 					System.out.println("tClient| ClientMessage recieved! ClientMessage toString() reads: \n");
 					System.out.println("- - - - - - - - - -");
-					System.out.println(temp.toString());
+					System.out.println(inputObj.toString());
 					System.out.println("- - - - - - - - - -");
 
 					if (this.debugObject != null) {
@@ -382,17 +328,14 @@ public class tClientTCP implements Runnable {
 					}
 				}
 
-				// Place the message in the message box
-				this.clientMessages.put((ClientMessage<?>) temp);
-
 				// New message has been collected, setting parentTransponder.newClientMessage
 				// flag to true
 				this.parentTransponder.setNewClientMessageFlag(true);
 			}
 
-			if (temp instanceof ServerMessage<?>) {
+			if (inputObj instanceof ServerMessage<?>) {
 
-				this.incomingServMessage = (ServerMessage<?>) temp;
+				this.incomingServMessage = (ServerMessage<?>) inputObj;
 
 				// Debug output
 				if (this.debugFlag == true) {
@@ -408,7 +351,7 @@ public class tClientTCP implements Runnable {
 
 				}
 
-				this.serverMessages.put(incomingServMessage);
+				this.parentTransponder.getMasterServMsg().add(incomingServMessage);
 
 				// New message has been collected, setting parentTransponder.newClientMessage
 				// flag to true
@@ -654,7 +597,7 @@ public class tClientTCP implements Runnable {
 						System.out.println("tClient| Failed preflights!");
 						e.printStackTrace();
 					}
-					
+
 					if (this.objOutStream == null && this.objInpStream == null) {
 						this.createOutputStreams();
 						this.createInputStreams();
@@ -700,7 +643,6 @@ public class tClientTCP implements Runnable {
 			while (this.stopFlag == false) {
 				// Receive Payload after SignOn
 				this.receiveMessages();
-				this.syncTranspMessages();
 			}
 		} else {
 			System.out.println("tClient| isClientReady returned false! NO-OP!");
@@ -747,11 +689,6 @@ public class tClientTCP implements Runnable {
 
 			throw new IllegalStateException("tClient| incomingServMessage is null! \n");
 		}
-	}
-
-	// returns the PBQ
-	public PriorityBlockingQueue<ClientMessage<?>> getMessageQueue() {
-		return this.clientMessages;
 	}
 
 	public void setParentTransponder(TransponderTCP parent) {

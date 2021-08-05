@@ -24,31 +24,27 @@ import java.util.concurrent.TimeUnit;
 // how the handshake for clientSignOn/clientSignOff should operate.
 
 public class tServerTCP implements Runnable {
-	
+
 	private Socket remoteSocketTCP = null;
-	
+
 	private OutputStream outputStream = null;
 	private InputStream inputStream = null;
-	
+
 	private BufferedInputStream serverBuffInputStream = null;
 	private BufferedOutputStream serverBuffOutStream = null;
-	
+
 	private ObjectOutputStream objOutputStream = null;
 	private ObjectInputStream objInputStream = null;
-	
+
 	private ServerMessage<?> currServMessage = null;
-	
-	private PriorityBlockingQueue<ClientMessage<?>> clientMessages = new PriorityBlockingQueue<ClientMessage<?>>();
-	private PriorityBlockingQueue<ServerMessage<?>> serverMessages = new PriorityBlockingQueue<ServerMessage<?>>();
 
 	private debugObj debugObject = null;
-	
+
 	private boolean stopFlag = false;
 	private boolean debugFlag = false;
-	
+
 	private TransponderTCP parentTransponder = null;
-		
-	
+
 	public tServerTCP(Socket serverSocket) {
 		this.remoteSocketTCP = serverSocket;
 	}
@@ -61,12 +57,12 @@ public class tServerTCP implements Runnable {
 	// isPayloadPresent returns a boolean TRUE if the currServMessage
 	// field is populated with a Payload object, false if not.
 	public boolean isServerMessagePresent() {
-		
+
 		if (this.currServMessage != null && this.currServMessage instanceof ServerMessage<?>) {
 			return true;
-			
+
 		} else {
-			
+
 			// debug output for when debugFlag set to TRUE
 			if (this.debugFlag == true) {
 				System.out.println("tServer| ServerMessage not present or malformed!");
@@ -76,61 +72,61 @@ public class tServerTCP implements Runnable {
 	}
 
 	// serviceStart() is intended to be put into a loop
-	// listen for messages from client-side, process them according to the message object.
+	// listen for messages from client-side, process them according to the message
+	// object.
 
-	public void serviceStart() {
-		// TODO: WRITE BEHAVIOR FOR YOUR APPLICATION BELOW!
+	public synchronized void serviceStart() {
 
 		try {
+
 			Object input = this.objInputStream.readObject();
 
 			// Run object through checkMesageIntegrity AKA: SecurityManager
-			if(this.checkMessageIntegrity(input)) {
-	
+			if (this.checkMessageIntegrity(input)) {
+
 				// Begin writing service behaviors here.
 				// Default behavior is to send a single payload
-				// to a client 
-				
+				// to a client
 
-				if(input instanceof ClientMessage<?>) {
+				if (input instanceof ClientMessage<?>) {
 
-					ClientMessage<?> inpMessage = (ClientMessage<?>)input;
+					ClientMessage<?> inpMessage = (ClientMessage<?>) input;
 
 					if (this.debugFlag == true) {
 						System.out.println("tServer| Received ClientMessage class!");
 						System.out.println("tServer| ClientMessage received in serviceStart() method!");
 						System.out.println("tServer| Message reads: \n" + inpMessage.toString());
 					}
-					
-					// add this to the list of messages we recieved
-					this.clientMessages.put(inpMessage);
-					
-					// New message has been collected, setting parentTransponder.newClientMessage flag to true
+
+					// add message to the master list
+					this.parentTransponder.getMasterCliMsg().add(inpMessage);
+
+					// New message has been collected, setting parentTransponder.newClientMessage
+					// flag to true
 					this.parentTransponder.setNewClientMessageFlag(true);
 				}
-				
-				if(input instanceof ServerMessage<?>) {
 
-					ServerMessage<?> inpMessage = (ServerMessage<?>)input;
+				if (input instanceof ServerMessage<?>) {
+
+					ServerMessage<?> inpMessage = (ServerMessage<?>) input;
 
 					if (this.debugFlag == true) {
 						System.out.println("tServer| Received ServerMessage class!");
 						System.out.println("tServer| ServerMessage received in serviceStart() method!");
 						System.out.println("tServer| Message reads: \n" + inpMessage.toString());
 					}
-					
+
 					// add this to the list of messages we recieved
-					this.serverMessages.put(inpMessage);
-					
-					// New message has been collected, setting parentTransponder.newServerMessage flag to true
+					this.parentTransponder.getMasterServMsg().add(inpMessage);
+					// New message has been collected, setting parentTransponder.newServerMessage
+					// flag to true
 					this.parentTransponder.setNewServerMessageFlag(true);
 				}
-				
 
 				// TODO: If we receive another cSignOn object after the initial connection...
 				// Do...something? Think about this.
 
-				if(input instanceof clientSignOn) {
+				if (input instanceof clientSignOn) {
 
 					clientSignOn inpCliSignOn = (clientSignOn) input;
 
@@ -138,32 +134,32 @@ public class tServerTCP implements Runnable {
 						System.out.println("tServer| Received clientSignOn object!\n");
 						System.out.println("tServer| inpClientSignOn object received in serviceStart() method!\n");
 					}
-					
+
 					this.parentTransponder.serverProcessSignOn(inpCliSignOn);
-					
+
 				}
-				
+
 				// TODO: If we receive a clientSignOff object - gracefully close the connection!
-				if(input instanceof clientSignOff) {
+				if (input instanceof clientSignOff) {
 					clientSignOff inpCliSignOff = (clientSignOff) input;
-					
+
 					if (this.debugFlag == true) {
 						System.out.println("tServer| Received clientSignOff class! Closing sockets! \n");
 						System.out.println("tServer| clientSignOff object received in serviceStart() method!\n");
 					}
 
-					// Once we receive clientSignOff object, stop this tServer. 
+					// Once we receive clientSignOff object, stop this tServer.
 					// We should still be listening at the TransponderTCP-level.
 					this.stopFlag = true;
 					this.parentTransponder.serverProcessSignOff(inpCliSignOff);
 				}
 			}
-			
+
 		} catch (ClassNotFoundException e) {
 			System.out.println("tServer| Class not found! Shutting down!");
 			this.stop();
 			e.printStackTrace();
-			
+
 		} catch (IOException e) {
 			System.out.println("tServer| IO Exception! Shutting down!");
 			this.stop();
@@ -173,7 +169,7 @@ public class tServerTCP implements Runnable {
 	}
 
 	public void processSignOn() {
-		
+
 		if (this.objInputStream != null) {
 			try {
 
@@ -183,12 +179,12 @@ public class tServerTCP implements Runnable {
 
 					// debug output for when debugFlag set to TRUE
 					if (this.debugFlag == true) {
-						System.out
-								.println("tServer| signOnObject received!\nclientSignOn Object ID:" + signOnObject.toString() + "\n");
+						System.out.println("tServer| signOnObject received!\nclientSignOn Object ID:"
+								+ signOnObject.toString() + "\n");
 					}
-					
+
 					// Hand the clientSignOn object to the parent transponder
-					this.parentTransponder.serverProcessSignOn((clientSignOn)signOnObject);
+					this.parentTransponder.serverProcessSignOn((clientSignOn) signOnObject);
 				}
 
 			} catch (ClassNotFoundException | IOException e) {
@@ -196,13 +192,13 @@ public class tServerTCP implements Runnable {
 				e.printStackTrace();
 			}
 		}
-		
+
 	}
 
 	// setOutgoingPayload assigns an outgoing payload object to this
 	// tServer's currServMessage field.
 	public void setServerMessage(ServerMessage<?> servMessage) {
-		
+
 		// debug output for when debugFlag set to TRUE
 		if (this.debugFlag == true) {
 			System.out.println("tServer setting currServMessage to" + this.currServMessage.toString() + "\n");
@@ -210,7 +206,7 @@ public class tServerTCP implements Runnable {
 
 		this.currServMessage = servMessage;
 	}
-	
+
 	public void setParentTransponder(TransponderTCP parent) {
 		this.parentTransponder = parent;
 	}
@@ -255,7 +251,6 @@ public class tServerTCP implements Runnable {
 				this.outputStream = this.remoteSocketTCP.getOutputStream();
 				this.serverBuffOutStream = new BufferedOutputStream(this.outputStream);
 				this.objOutputStream = new ObjectOutputStream(this.serverBuffOutStream);
-				this.objOutputStream.flush();
 
 				// debug output
 				if (this.debugFlag == true) {
@@ -271,17 +266,6 @@ public class tServerTCP implements Runnable {
 
 		}
 
-	}
-	
-	private void syncTranspMessages() {
-		
-		for(ClientMessage<?> currCliMess : this.clientMessages) {
-			this.parentTransponder.addCliMessageToMaster(currCliMess);
-		}
-		
-		for(ServerMessage<?> currServMess : this.serverMessages) {
-			this.parentTransponder.addServMessageToMaster(currServMess);
-		}
 	}
 
 	// transmitPayload checks for the presence of an currServMessage,
@@ -336,7 +320,6 @@ public class tServerTCP implements Runnable {
 					}
 
 					// Transmit the object via ObjOutputStream!
-					this.objOutputStream.reset();
 					this.objOutputStream.writeObject(servMessage);
 					this.objOutputStream.flush();
 				}
@@ -377,39 +360,39 @@ public class tServerTCP implements Runnable {
 		}
 
 	}
-	
+
 	// Homebrew object filter, for the moment.
 	// Checks if the input object is an instance of anything we care about
 	// TODO: Future - Perhaps use this space for hashchecking?
 	// TODO: Implement Security Manager stuff here
 
 	public boolean checkMessageIntegrity(Object o) {
-		
-		if(o instanceof ServerMessage<?>) {
-			ServerMessage<?> inpPayload = (ServerMessage<?>)o;
+
+		if (o instanceof ServerMessage<?>) {
+			ServerMessage<?> inpPayload = (ServerMessage<?>) o;
 			return true;
 		}
-		
-		if(o instanceof ClientMessage<?>) {
-			ClientMessage<?> inpPayload = (ClientMessage<?>)o;
+
+		if (o instanceof ClientMessage<?>) {
+			ClientMessage<?> inpPayload = (ClientMessage<?>) o;
 			return true;
 		}
-		
-		if(o instanceof ChatMessage) {
-			ChatMessage inpPayload = (ChatMessage)o;
+
+		if (o instanceof ChatMessage) {
+			ChatMessage inpPayload = (ChatMessage) o;
 			return true;
 		}
-		
-		if(o instanceof clientSignOn) {
+
+		if (o instanceof clientSignOn) {
 			clientSignOn inpCliSignOn = (clientSignOn) o;
 			return true;
 		}
-		
-		if(o instanceof clientSignOff) {
+
+		if (o instanceof clientSignOff) {
 			clientSignOff inpCliSignOff = (clientSignOff) o;
 			return true;
 		}
-		
+
 		return false;
 	}
 
@@ -426,7 +409,6 @@ public class tServerTCP implements Runnable {
 			this.serverBuffOutStream.close();
 			this.serverBuffInputStream.close();
 
-			
 			this.remoteSocketTCP.close();
 
 		} catch (IOException e) {
@@ -439,7 +421,7 @@ public class tServerTCP implements Runnable {
 	// run method for thread execution
 	@Override
 	public void run() {
-		
+
 		// Debugging operations
 		if (this.debugFlag == true) {
 			if (this.debugObject != null && this.debugObject instanceof debugObj) {
@@ -450,17 +432,17 @@ public class tServerTCP implements Runnable {
 		}
 
 		if (this.debugFlag == true) {
-			System.out.println(
-					"tServer| Serving Client connected from: " + this.remoteSocketTCP.getRemoteSocketAddress().toString());
+			System.out.println("tServer| Serving Client connected from: "
+					+ this.remoteSocketTCP.getRemoteSocketAddress().toString());
 		}
-		
+
 		// Set the server options for the newly-created socket
 		// setServerOpts is where we will pass misc. options in the future!
 		this.setServerOpts(null);
 
 		// Handshake_1: Create InputStreams
 		this.createInputStreams();
-		
+
 		// Handshake_2: Create OutputStreams
 		this.createOutputStreams();
 
@@ -472,15 +454,16 @@ public class tServerTCP implements Runnable {
 
 		// Listen and begin service
 
-		// While stopFlag = false, we are going to listen for further messages and handle them 
+		// While stopFlag = false, we are going to listen for further messages and
+		// handle them
 		// accordingly.
 
-		while(stopFlag == false) {
+		while (stopFlag == false) {
 			serviceStart();
-			syncTranspMessages();
 		}
-		
-		// After we close from the listening loop - close our IO and finish the run method.
+
+		// After we close from the listening loop - close our IO and finish the run
+		// method.
 		this.closeIO();
 	}
 
@@ -507,7 +490,7 @@ public class tServerTCP implements Runnable {
 	public void debugPayloadIntegrity() {
 		System.out.println("tServer| Running debugPayloadIntegrity!");
 		System.out.println("tServer| Will report payload to debugObj!");
-		
+
 		if (this.debugFlag == true) {
 			if (this.currServMessage == null) {
 				System.out.println("tServer| currServMessage not set!");
@@ -521,30 +504,25 @@ public class tServerTCP implements Runnable {
 	}
 
 	public String getLocalAddr() {
-		
+
 		if (this.remoteSocketTCP == null) {
 			throw new IllegalStateException("tServer| remoteSocketTCP not set! Cannot provide address!");
 		}
-		
+
 		return this.remoteSocketTCP.getLocalAddress().toString();
 	}
-	
+
 	public int getLocalPort() {
-		
+
 		if (this.remoteSocketTCP == null) {
 			throw new IllegalStateException("tServer| remoteSocketTCP not set! Cannot provide port!");
 		}
-		
+
 		return this.remoteSocketTCP.getPort();
 	}
 
-	// returns the PBQ
-	public synchronized PriorityBlockingQueue<ClientMessage<?>> getMessageQueue(){
-		return this.clientMessages;
-	}
-	
 	public int getServMessageHash() {
-		
+
 		if (this.currServMessage != null) {
 			return this.currServMessage.hashCode();
 		} else {
@@ -553,7 +531,7 @@ public class tServerTCP implements Runnable {
 	}
 
 	public String getRemoteAddr() {
-		
+
 		if (this.remoteSocketTCP == null) {
 			return "remoteSocketTCP not set!";
 		}
@@ -562,11 +540,11 @@ public class tServerTCP implements Runnable {
 
 	public String getStatus() {
 		String status = "";
-		
+
 		status += "tServer| Connection Status: \n";
 
 		status += "---Local Address settings--- \n";
-		
+
 		if (this.remoteSocketTCP == null) {
 			status += "tServer| remoteSocketTCP set to null!\n";
 		} else {
@@ -590,8 +568,8 @@ public class tServerTCP implements Runnable {
 
 		return status;
 	}
-	
-	public ServerMessage getCurrServerMessage() {
+
+	public ServerMessage<?> getCurrServerMessage() {
 		return this.currServMessage;
 	}
 }

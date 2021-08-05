@@ -43,10 +43,12 @@ public class TransponderTCP implements Runnable {
 
 	private boolean debugFlag = false;
 	private boolean stopFlag = false;
-	
-	// newClient/ServerMessage boolean flags are used to indicate to an outside program that 
-	// the transponder has a new message that is ready to be pulled from one of the getters.
-	
+
+	// newClient/ServerMessage boolean flags are used to indicate to an outside
+	// program that
+	// the transponder has a new message that is ready to be pulled from one of the
+	// getters.
+
 	private boolean newServerMessage = false;
 	private boolean newClientMessage = false;
 
@@ -74,7 +76,7 @@ public class TransponderTCP implements Runnable {
 	public TransponderTCP(Socket clientSock) {
 		this.mode = 2;
 
-		tClientTCP client = new tClientTCP(clientSock, this, this.clientMessagesMaster);
+		tClientTCP client = new tClientTCP(clientSock);
 
 		if (clientSock.isBound() == false) {
 			throw new IllegalStateException("transponderTCP| clientSock was not bound when passed in!");
@@ -109,42 +111,44 @@ public class TransponderTCP implements Runnable {
 		this.mode = 2;
 		this.localController = controller;
 
-		tClientTCP client = new tClientTCP(clientSock, this, this.clientMessagesMaster);
+		tClientTCP client = new tClientTCP(clientSock);
 
 		client.setRemoteSocketAddress(clientSock.getRemoteSocketAddress());
 
 		this.tClientSet.add(client);
 	}
 
-	
 	// Adds a clientMessage<?> to our clientMessagesMaster queue
-	public synchronized void addCliMessageToMaster(ClientMessage<?> cliMess) {
-		this.clientMessagesMaster.put(cliMess);
+	public void addCliMessageToMaster(ClientMessage<?> cliMess) {
+		synchronized (this.clientMessagesMaster) {
+			this.clientMessagesMaster.put(cliMess);
+		}
 	}
-	
+
 	// Adds a clientMessage<?> to our clientMessagesMaster queue
 	public void addServMessageToMaster(ServerMessage<?> servMess) {
-		this.serverMessagesMaster.put(servMess);
+		synchronized (this.clientMessagesMaster) {
+			this.serverMessagesMaster.put(servMess);
+		}
 	}
-	
+
 	public void addClient(Socket cliSock) {
 		tClientTCP addClient = new tClientTCP(cliSock);
-		
-		
+
 		InetAddress clientAddrLocal = cliSock.getLocalAddress();
 		InetAddress clientAddrRemote = cliSock.getInetAddress();
-		
+
 		addClient.setLocalSocketAddress(cliSock.getLocalSocketAddress());
 		addClient.setRemoteSocketAddress(cliSock.getRemoteSocketAddress());
-		
+
 		addClient.generateClientSignOn(clientAddrLocal, clientAddrRemote);
 		addClient.generateClientSignOff(clientAddrLocal, clientAddrRemote);
 		addClient.setParentTransponder(this);
-		
+
 		this.tClientSet.add(addClient);
-		
+
 	}
-	
+
 	// Shuts down the IOstreams on the listening ServerSocket
 	public void closeServerIO() {
 
@@ -171,18 +175,19 @@ public class TransponderTCP implements Runnable {
 				while (this.stopFlag == false) {
 					this.confServer();
 				}
-
+				System.out.print(this.getClientStream().toString());
+				
 				// After we leave the listen-loop, close IO.
 				// Assume we are done at this point.
 				closeServerIO();
 			}
 		}
-
 		if (this.mode == 2) {
 			this.confClient();
 		}
 
 	}
+	
 
 	// Close clients gracefully, stop threads (internally. Do NOT use Thread.stop()!
 	// Deprecated!)
@@ -224,7 +229,7 @@ public class TransponderTCP implements Runnable {
 
 	// Directs each server instance to send the directed message NOW!
 	public void allServersSendMessage(ServerMessage<?> servMessage) {
-				
+
 		for (tServerTCP currServ : this.tServerSet) {
 			currServ.transmitServerMessage(servMessage);
 		}
@@ -233,12 +238,12 @@ public class TransponderTCP implements Runnable {
 	public void setInitServerMessage(ServerMessage<?> servMessage) {
 		this.initServMessage = servMessage;
 	}
-	
+
 	// set the newServerMessage indicator flag
 	public void setNewServerMessageFlag(boolean flag) {
 		this.newServerMessage = flag;
 	}
-	
+
 	// set the newClientMessage indicator flag
 	public void setNewClientMessageFlag(boolean flag) {
 		this.newClientMessage = flag;
@@ -253,10 +258,10 @@ public class TransponderTCP implements Runnable {
 			currServ.setServerMessage(servMessage);
 		}
 	}
-	
+
 	public void updateServerSM(tServerTCP server, ServerMessage<?> servMessage) {
 		for (tServerTCP currServ : this.tServerSet) {
-			if(currServ == server) {
+			if (currServ == server) {
 				currServ.setServerMessage(servMessage);
 			}
 		}
@@ -310,7 +315,8 @@ public class TransponderTCP implements Runnable {
 			e.printStackTrace();
 		}
 
-		if(this.initServMessage != null) {
+		// Sets the initial server message
+		if (this.initServMessage != null) {
 			server.setServerMessage(this.initServMessage);
 		}
 
@@ -327,7 +333,7 @@ public class TransponderTCP implements Runnable {
 
 		Thread serverThread = new Thread(server);
 
-		serverThread.setName("tServer| " + server.getLocalAddr()+":" + server.getLocalPort());
+		serverThread.setName("tServer| " + server.getLocalAddr() + ":" + server.getLocalPort());
 
 		this.tServerSet.add(server);
 		this.serverThreads.add(serverThread);
@@ -452,85 +458,80 @@ public class TransponderTCP implements Runnable {
 
 	// Not sure if i'll ever use this...
 	public Stream<ClientMessage<?>> getClientStream() {
-		// Creates a master messageList, fills it with all the available messages in
-		// each
-		// client's messageQueue, and sorts it by date. After that: Converts to a
-		// stream.
+		return this.clientMessagesMaster.stream();
 
-		ArrayList<ClientMessage<?>> messageList = new ArrayList<ClientMessage<?>>();
-
-		for (tClientTCP currClient : this.tClientSet) {
-
-			PriorityBlockingQueue<ClientMessage<?>> cliMessages = currClient.getMessageQueue();
-
-			for (ClientMessage<?> currMessage : cliMessages) {
-				messageList.add(currMessage);
-			}
-		}
-		MessageDateComparator dateComparator = new MessageDateComparator();
-
-		messageList.sort(dateComparator);
-
-		return messageList.stream();
 	}
 
 	public void serverProcessSignOn(clientSignOn cson) {
+		// Check if the set already constains a sign-on object
+		if (this.csonSet.contains(cson)) {
+			System.out.println("TransponderTCP| clientSignOn object already present!");
+		}
+
 		System.out.println("TransponderTCP| new signon from:" + cson.getClientAddr().toString());
 		this.csonSet.add(cson);
 	}
 
 	public void serverProcessSignOff(clientSignOff csoff) {
+		// Check if the set already constains a sign-off object
+		if (this.csoffSet.contains(csoff)) {
+			System.out.println("TransponderTCP| clientSignOff object already present!");
+		}
 		System.out.println("TransponderTCP| new signoff from:" + csoff.getClientAddr().toString());
 		this.csoffSet.add(csoff);
+
 	}
-	
-	// Retrieves an ArrayList of ClientMessages logged with the server, sorted by timestamp.
 
-	public HashMap<String,PriorityBlockingQueue<ClientMessage<?>>> getServerRecievedCMMap() {
-
-		HashMap<String,PriorityBlockingQueue<ClientMessage<?>>> messageMap = new HashMap<String,PriorityBlockingQueue<ClientMessage<?>>>();
-		
-		for (tServerTCP currServer : this.tServerSet) {
-
-			PriorityBlockingQueue<ClientMessage<?>> cliMessages = currServer.getMessageQueue();
-
-			messageMap.put(currServer.getRemoteAddr(), cliMessages);
-		}
-		
-		// Messages have been collected, setting newClientMessage flag to false
-		this.newClientMessage = false;
-		
-		return messageMap;
+	public synchronized PriorityBlockingQueue<ClientMessage<?>> getMasterCliMsg() {
+		return this.clientMessagesMaster;
 	}
-	
-	public ArrayList<ClientMessage<?>> getServerRecievedCMsOrdered(Comparator<ClientMessage<?>> comparator){
+
+	public synchronized PriorityBlockingQueue<ServerMessage<?>> getMasterServMsg() {
+		return this.serverMessagesMaster;
+	}
+
+	// Retrieves an ArrayList of ClientMessages logged with the server, sorted by
+	// <Comparator>.
+
+	public ArrayList<ClientMessage<?>> getServerRecievedCMsOrdered(Comparator<ClientMessage<?>> comparator) {
 		ArrayList<ClientMessage<?>> messageList = new ArrayList<ClientMessage<?>>();
-		
-		for (tServerTCP currServer : this.tServerSet) {
 
-			PriorityBlockingQueue<ClientMessage<?>> cliMessages = currServer.getMessageQueue();
+		PriorityBlockingQueue<ClientMessage<?>> cliMessages = this.clientMessagesMaster;
 
-			for(ClientMessage<?> currMessage : cliMessages) {
-				messageList.add(currMessage);
-			}
+		for (ClientMessage<?> currMessage : cliMessages) {
+			messageList.add(currMessage);
 		}
-		
+
 		messageList.sort(comparator);
-		
-		// Messages have been collected, setting newClientMessage flag to false
-		this.newClientMessage = false;
-		
+
 		return messageList;
+	}
+	
+	public ArrayList<ServerMessage<?>> getServerRecievedSMsOrdered(Comparator<ServerMessage<?>> comparator) {
+		ArrayList<ServerMessage<?>> messageList = new ArrayList<ServerMessage<?>>();
+
+		PriorityBlockingQueue<ServerMessage<?>> servMessages = this.serverMessagesMaster;
+
+		for (ServerMessage<?> currMessage : servMessages) {
+			messageList.add(currMessage);
+		}
+
+		messageList.sort(comparator);
+
+		return messageList;
+	}
+
+	public void serverSendSM(ServerMessage<?> sm, tServerTCP server) {
+		server.transmitServerMessage(sm);
 	}
 	
 	public boolean getNewCMFlag() {
 		return this.newClientMessage;
 	}
-	
+
 	public boolean getNewSMFlag() {
 		return this.newServerMessage;
 	}
-	
 
 	public void clientPerformSignOn() {
 		for (tClientTCP currClient : this.tClientSet) {
@@ -558,7 +559,7 @@ public class TransponderTCP implements Runnable {
 		this.newClientMessage = false;
 		return this.clientMessagesMaster.take();
 	}
-	
+
 	public ServerMessage<?> getLastSM() throws InterruptedException {
 		this.newServerMessage = false;
 		return this.serverMessagesMaster.take();

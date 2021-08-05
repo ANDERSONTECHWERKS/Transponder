@@ -418,10 +418,6 @@ public class Tests extends TestCase{
 		
 		testTranspServ.allServersSendMessage(testPayload2);
 
-		
-		
-		HashMap<String,PriorityBlockingQueue<ClientMessage<?>>> serverMap = testTranspServ.getServerRecievedCMMap();
-		
 		Comparator<ClientMessage<?>> dateComp = new MessageDateComparator();
 		
 		System.out.println("Server recieved the following messages:\n" + testTranspServ.getServerRecievedCMsOrdered(dateComp));
