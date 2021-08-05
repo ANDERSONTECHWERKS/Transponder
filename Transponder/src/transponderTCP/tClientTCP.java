@@ -23,7 +23,7 @@ import java.util.concurrent.PriorityBlockingQueue;
 // socketRemoteAddr: Remote address for assignment to remote socket
 // clientStream: Stream for incoming data
 // objInpStream: Object Stream (used with clientStream) used to receive object
-// incomingServMessage: Recieving object for Payload-class payload, recieved via objInpStream
+// lastServMessage: Recieving object for Payload-class payload, recieved via objInpStream
 // stopFlag: boolean used to start / stop thread
 public class tClientTCP implements Runnable {
 
@@ -41,7 +41,8 @@ public class tClientTCP implements Runnable {
 	private clientSignOff clientSOFF = null;
 	private clientSignOn clientSON = null;
 
-	private ServerMessage<?> incomingServMessage = null;
+	private ServerMessage<?> lastServMessage = null;
+	private ClientMessage<?> lastClientMessage = null;
 
 	private boolean stopFlag = false;
 	private boolean debugFlag = false;
@@ -165,6 +166,7 @@ public class tClientTCP implements Runnable {
 			this.clientSocket.connect(this.socketRemoteAddr);
 
 		} catch (IOException e) {
+			System.out.println("tClient| Exception while connecting local TCP! ");
 			e.printStackTrace();
 		}
 	}
@@ -314,7 +316,8 @@ public class tClientTCP implements Runnable {
 			if (inputObj instanceof ClientMessage<?>) {
 				// If we recieve a clientMessage - throw it into the clientMessages queue
 				this.parentTransponder.getMasterCliMsg().add((ClientMessage<?>) inputObj);
-
+				this.lastClientMessage = ((ClientMessage<?>) inputObj);
+				
 				// Debug output
 				if (this.debugFlag == true) {
 
@@ -335,23 +338,23 @@ public class tClientTCP implements Runnable {
 
 			if (inputObj instanceof ServerMessage<?>) {
 
-				this.incomingServMessage = (ServerMessage<?>) inputObj;
+				this.lastServMessage = (ServerMessage<?>) inputObj;
 
 				// Debug output
 				if (this.debugFlag == true) {
 
 					System.out.println("tClient| ServerMessage recieved! ServerMessage toString() reads: \n");
 					System.out.println("- - - - - - - - - -");
-					System.out.println(this.incomingServMessage.toString());
+					System.out.println(this.lastServMessage.toString());
 					System.out.println("- - - - - - - - - -");
 
 					if (this.debugObject != null) {
-						this.debugObject.setRecievedServMessage(incomingServMessage);
+						this.debugObject.setRecievedServMessage(lastServMessage);
 					}
 
 				}
 
-				this.parentTransponder.getMasterServMsg().add(incomingServMessage);
+				this.parentTransponder.getMasterServMsg().add(lastServMessage);
 
 				// New message has been collected, setting parentTransponder.newClientMessage
 				// flag to true
@@ -399,9 +402,9 @@ public class tClientTCP implements Runnable {
 		// TODO: Decide and develop what to do with the received payload from here
 		// Intended functionality is NOT to simply receive a payload and toString() it.
 
-		if (debugFlag == true && this.incomingServMessage != null) {
+		if (debugFlag == true && this.lastServMessage != null) {
 			System.out.println("Payload recieved at time " + System.currentTimeMillis() + "\n");
-			System.out.println(this.incomingServMessage.toString() + "\n");
+			System.out.println(this.lastServMessage.toString() + "\n");
 		}
 
 	}
@@ -467,7 +470,7 @@ public class tClientTCP implements Runnable {
 	// Closes streams, and the clientSocketRemote
 	public void closeIO() {
 
-		this.incomingServMessage = null;
+		this.lastServMessage = null;
 		if (this.clientBuffInputStream != null && this.clientSocket != null) {
 
 			try {
@@ -515,7 +518,6 @@ public class tClientTCP implements Runnable {
 
 			this.clientBuffOutputStream = new BufferedOutputStream(this.clientSocket.getOutputStream());
 			this.objOutStream = new ObjectOutputStream(this.clientBuffOutputStream);
-			this.objOutStream.flush();
 
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
@@ -683,11 +685,11 @@ public class tClientTCP implements Runnable {
 	// Throws an IllegalStateException if the IncomingPayload is currently null
 	public ServerMessage<?> getLastServerMessage() {
 
-		if (this.incomingServMessage != null) {
-			return this.incomingServMessage;
+		if (this.lastServMessage != null) {
+			return this.lastServMessage;
 		} else {
 
-			throw new IllegalStateException("tClient| incomingServMessage is null! \n");
+			throw new IllegalStateException("tClient| lastServMessage is null! \n");
 		}
 	}
 
@@ -735,13 +737,26 @@ public class tClientTCP implements Runnable {
 
 		status += "Payload status: \n";
 
-		if (this.incomingServMessage == null) {
-			status += "Payload not received! Currently: null \n";
+		if (this.lastServMessage == null) {
+			status += "ServerMessage not received! Currently: null \n";
+		}
+		
+		if(this.lastClientMessage == null) {
+			status += "ClientMessage not receivedd! Currently: null \n";
 		}
 
-		if (this.incomingServMessage instanceof Payload) {
-			status += "Payload received. Current payload:\n";
-			status += this.incomingServMessage.toString() + "\n";
+		if (this.lastServMessage instanceof Payload) {
+			status += "Payload received. Last payload:\n";
+			status += this.lastServMessage.toString() + "\n";
+		}
+		
+		if (this.lastServMessage instanceof ServerMessage<?>) {
+			status += "ServerMessage received. Last ServerMessage:\n";
+			status += this.lastServMessage.toString() + "\n";
+		}
+		if (this.lastClientMessage instanceof ClientMessage<?>) {
+			status += "ClientMessage received. Last ClientMessage:\n";
+			status += this.lastClientMessage.toString() + "\n";
 		}
 
 		return status;
