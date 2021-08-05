@@ -79,13 +79,16 @@ public class TransponderTCP implements Runnable {
 	}
 
 	public TransponderTCP(Socket clientSock) {
-		this.mode = 2;
-
-		tClientTCP client = new tClientTCP(clientSock);
-
+		
 		if (clientSock.isBound() == false) {
 			throw new IllegalStateException("transponderTCP| clientSock was not bound when passed in!");
 		}
+		
+		this.mode = 2;
+
+		tClientTCP client = new tClientTCP(clientSock);
+		
+		client.setParentTransponder(this);
 
 		this.tClientSet.add(client);
 	}
@@ -546,7 +549,7 @@ public class TransponderTCP implements Runnable {
 	}
 	
 	public boolean getNewCMFlag() {
-		return this.newClientMessage;
+			return this.newClientMessage;
 	}
 
 	public boolean getNewSMFlag() {

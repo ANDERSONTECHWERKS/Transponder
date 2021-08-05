@@ -503,7 +503,7 @@ public class ControllerMenu {
 	// and return the Payload object
 	// This will likely change as Transponder is developed further
 
-	public ServerMessage promptServerMessage(Scanner userInput) {
+	public ServerMessage<?> promptServerMessage(Scanner userInput) {
 
 		if (this.currTransponder == null) {
 			throw new IllegalStateException("ServerMessage not set! currTransponder is null!");
@@ -516,7 +516,7 @@ public class ControllerMenu {
 		System.out.println("Please enter the serial number of this Payload:");
 		int payloadNumber = userInput.nextInt();
 
-		ServerMessage payload = new Payload(payloadNumber, payloadTitle);
+		ServerMessage<?> payload = new Payload(payloadNumber, payloadTitle);
 
 		return payload;
 	}
