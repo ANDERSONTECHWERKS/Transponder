@@ -121,6 +121,9 @@ public class tServerTCP implements Runnable {
 					
 					// add this to the list of messages we recieved
 					this.serverMessages.put(inpMessage);
+					
+					// New message has been collected, setting parentTransponder.newServerMessage flag to true
+					this.parentTransponder.setNewServerMessageFlag(true);
 				}
 				
 
@@ -156,10 +159,14 @@ public class tServerTCP implements Runnable {
 				}
 			}
 			
-		} catch (ClassNotFoundException | IOException e) {
+		} catch (ClassNotFoundException e) {
 			System.out.println("tServer| Class not found!");
-			// TODO Auto-generated catch block
 			e.printStackTrace();
+			
+		} catch (IOException e) {
+			System.out.println("tServer| IO Exception!");
+			e.printStackTrace();
+
 		}
 	}
 
