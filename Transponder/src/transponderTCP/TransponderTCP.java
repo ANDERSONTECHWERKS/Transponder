@@ -528,8 +528,9 @@ public class TransponderTCP implements Runnable {
 	}
 	
 	public boolean getNewSMFlag() {
-		return this.newClientMessage;
+		return this.newServerMessage;
 	}
+	
 
 	public void clientPerformSignOn() {
 		for (tClientTCP currClient : this.tClientSet) {
