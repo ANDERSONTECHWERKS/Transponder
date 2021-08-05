@@ -381,11 +381,12 @@ public class tClientTCP implements Runnable {
 						// TODO: Figure out what to do with ClientMessages in debugObj
 					}
 				}
-				
+
 				// Place the message in the message box
-				this.clientMessages.put((ClientMessage<?>)temp);
-				
-				// New message has been collected, setting parentTransponder.newClientMessage flag to true
+				this.clientMessages.put((ClientMessage<?>) temp);
+
+				// New message has been collected, setting parentTransponder.newClientMessage
+				// flag to true
 				this.parentTransponder.setNewClientMessageFlag(true);
 			}
 
@@ -408,8 +409,9 @@ public class tClientTCP implements Runnable {
 				}
 
 				this.serverMessages.put(incomingServMessage);
-				
-				// New message has been collected, setting parentTransponder.newClientMessage flag to true
+
+				// New message has been collected, setting parentTransponder.newClientMessage
+				// flag to true
 				this.parentTransponder.setNewServerMessageFlag(true);
 			}
 
@@ -463,7 +465,7 @@ public class tClientTCP implements Runnable {
 
 	public boolean clientSendMessage(ClientMessage<?> message) {
 
-		if(this.objOutStream == null) {
+		if (this.objOutStream == null) {
 			this.preflight_run();
 		}
 
@@ -637,8 +639,10 @@ public class tClientTCP implements Runnable {
 			if (this.clientSocket != null) {
 
 				if (this.clientSocket.isBound() && this.clientSocket.isConnected()) {
-					this.createOutputStreams();
-					this.createInputStreams();
+					if (this.objOutStream == null && this.objInpStream == null) {
+						this.createOutputStreams();
+						this.createInputStreams();
+					}
 				}
 
 				if (!this.clientSocket.isBound() && !this.clientSocket.isConnected()) {
@@ -649,6 +653,11 @@ public class tClientTCP implements Runnable {
 					} catch (IOException e) {
 						System.out.println("tClient| Failed preflights!");
 						e.printStackTrace();
+					}
+					
+					if (this.objOutStream == null && this.objInpStream == null) {
+						this.createOutputStreams();
+						this.createInputStreams();
 					}
 				}
 			}
@@ -744,7 +753,7 @@ public class tClientTCP implements Runnable {
 	public PriorityBlockingQueue<ClientMessage<?>> getMessageQueue() {
 		return this.clientMessages;
 	}
-	
+
 	public void setParentTransponder(TransponderTCP parent) {
 		this.parentTransponder = parent;
 	}
