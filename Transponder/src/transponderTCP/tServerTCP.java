@@ -104,6 +104,9 @@ public class tServerTCP implements Runnable {
 					
 					// add this to the list of messages we recieved
 					this.clientMessages.put(inpMessage);
+					
+					// New message has been collected, setting parentTransponder.newClientMessage flag to true
+					this.parentTransponder.setNewClientMessageFlag(true);
 				}
 				
 				if(input instanceof ServerMessage<?>) {

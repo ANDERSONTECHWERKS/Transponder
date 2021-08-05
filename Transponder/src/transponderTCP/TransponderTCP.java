@@ -43,6 +43,12 @@ public class TransponderTCP implements Runnable {
 
 	private boolean debugFlag = false;
 	private boolean stopFlag = false;
+	
+	// newClient/ServerMessage boolean flags are used to indicate to an outside program that 
+	// the transponder has a new message that is ready to be pulled from one of the getters.
+	
+	private boolean newServerMessage = false;
+	private boolean newClientMessage = false;
 
 	public TransponderTCP(int mode) {
 		this.mode = mode;
@@ -229,6 +235,16 @@ public class TransponderTCP implements Runnable {
 
 	public void setServerMessage(ServerMessage<?> servMessage) {
 		this.servMessage = servMessage;
+	}
+	
+	// set the newServerMessage indicator flag
+	public void setNewServerMessageFlag(boolean flag) {
+		this.newServerMessage = flag;
+	}
+	
+	// set the newClientMessage indicator flag
+	public void setNewClientMessageFlag(boolean flag) {
+		this.newClientMessage = flag;
 	}
 
 	public void setControllerMenu(ControllerMenu localMenu) {
@@ -477,7 +493,9 @@ public class TransponderTCP implements Runnable {
 			messageMap.put(currServer.getRemoteAddr(), cliMessages);
 		}
 		
-
+		// Messages have been collected, setting newClientMessage flag to false
+		this.newClientMessage = false;
+		
 		return messageMap;
 	}
 	
@@ -495,7 +513,18 @@ public class TransponderTCP implements Runnable {
 		
 		messageList.sort(comparator);
 		
+		// Messages have been collected, setting newClientMessage flag to false
+		this.newClientMessage = false;
+		
 		return messageList;
+	}
+	
+	public boolean getNewClientMessageFlag() {
+		return this.newClientMessage;
+	}
+	
+	public boolean getNewServerMessageFlag() {
+		return this.newClientMessage;
 	}
 
 	public void clientPerformSignOn() {

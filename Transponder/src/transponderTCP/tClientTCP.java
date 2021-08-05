@@ -381,6 +381,12 @@ public class tClientTCP implements Runnable {
 						// TODO: Figure out what to do with ClientMessages in debugObj
 					}
 				}
+				
+				// Place the message in the message box
+				this.clientMessages.put((ClientMessage<?>)temp);
+				
+				// New message has been collected, setting parentTransponder.newClientMessage flag to true
+				this.parentTransponder.setNewClientMessageFlag(true);
 			}
 
 			if (temp instanceof ServerMessage<?>) {
@@ -402,6 +408,9 @@ public class tClientTCP implements Runnable {
 				}
 
 				this.serverMessages.put(incomingServMessage);
+				
+				// New message has been collected, setting parentTransponder.newClientMessage flag to true
+				this.parentTransponder.setNewServerMessageFlag(true);
 			}
 
 		} catch (SocketException e) {
