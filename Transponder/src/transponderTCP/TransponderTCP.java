@@ -37,7 +37,7 @@ public class TransponderTCP implements Runnable {
 
 	private ServerSocket serverSocket = null;
 
-	private ServerMessage<?> servMessage = null;
+	private ServerMessage<?> initServMessage = null;
 
 	private debugObj debugObj = null;
 
@@ -146,7 +146,7 @@ public class TransponderTCP implements Runnable {
 	}
 	
 	// Shuts down the IOstreams on the listening ServerSocket
-	public void closeIO() {
+	public void closeServerIO() {
 
 		try {
 
@@ -174,7 +174,7 @@ public class TransponderTCP implements Runnable {
 
 				// After we leave the listen-loop, close IO.
 				// Assume we are done at this point.
-				closeIO();
+				closeServerIO();
 			}
 		}
 
@@ -223,18 +223,15 @@ public class TransponderTCP implements Runnable {
 	}
 
 	// Directs each server instance to send the directed message NOW!
-	public void serverSendMessage(ServerMessage<?> servMessage) {
-		
-		this.servMessage = servMessage;
-		
+	public void allServersSendMessage(ServerMessage<?> servMessage) {
+				
 		for (tServerTCP currServ : this.tServerSet) {
-			currServ.setServerMessage(this.servMessage);
-			currServ.transmitServerMessage(this.servMessage);
+			currServ.transmitServerMessage(servMessage);
 		}
 	}
 
-	public void setServerMessage(ServerMessage<?> servMessage) {
-		this.servMessage = servMessage;
+	public void setInitServerMessage(ServerMessage<?> servMessage) {
+		this.initServMessage = servMessage;
 	}
 	
 	// set the newServerMessage indicator flag
@@ -251,15 +248,22 @@ public class TransponderTCP implements Runnable {
 		this.localController = localMenu;
 	}
 
-	public void updateServerInstances(ServerMessage<?> servMessage) {
+	public void updateAllServerSMs(ServerMessage<?> servMessage) {
 		for (tServerTCP currServ : this.tServerSet) {
 			currServ.setServerMessage(servMessage);
+		}
+	}
+	
+	public void updateServerSM(tServerTCP server, ServerMessage<?> servMessage) {
+		for (tServerTCP currServ : this.tServerSet) {
+			if(currServ == server) {
+				currServ.setServerMessage(servMessage);
+			}
 		}
 	}
 
 	// This method binds a specified tClient to the parameter endpoint
 	public void clientBindRemoteSocks(tClientTCP client, SocketAddress remoteEndpoint) {
-
 		for (tClientTCP currClient : this.tClientSet) {
 
 			if (currClient.equals(client)) {
@@ -306,8 +310,8 @@ public class TransponderTCP implements Runnable {
 			e.printStackTrace();
 		}
 
-		if(this.servMessage != null) {
-			server.setServerMessage(this.servMessage);
+		if(this.initServMessage != null) {
+			server.setServerMessage(this.initServMessage);
 		}
 
 		// debug-specific actions when debugFlag set to TRUE
@@ -318,7 +322,7 @@ public class TransponderTCP implements Runnable {
 
 			System.out.println(
 					"transponderTCP| Listening for connection at: " + this.serverSocket.getInetAddress() + "\n");
-			System.out.println("transponderTCP| ServerMessage set to: \n" + this.servMessage.toString());
+			System.out.println("transponderTCP| ServerMessage set to: \n" + this.initServMessage.toString());
 		}
 
 		Thread serverThread = new Thread(server);
@@ -412,6 +416,7 @@ public class TransponderTCP implements Runnable {
 		}
 	}
 
+	// Prints status of current transponder object.
 	public String getStatus() {
 		String result = "Status for current TransponderTCP: " + this + "\n";
 
@@ -445,8 +450,7 @@ public class TransponderTCP implements Runnable {
 		return result;
 	}
 
-	//
-
+	// Not sure if i'll ever use this...
 	public Stream<ClientMessage<?>> getClientStream() {
 		// Creates a master messageList, fills it with all the available messages in
 		// each
@@ -482,7 +486,7 @@ public class TransponderTCP implements Runnable {
 	
 	// Retrieves an ArrayList of ClientMessages logged with the server, sorted by timestamp.
 
-	public HashMap<String,PriorityBlockingQueue<ClientMessage<?>>> getServerRecievedMessageMap() {
+	public HashMap<String,PriorityBlockingQueue<ClientMessage<?>>> getServerRecievedCMMap() {
 
 		HashMap<String,PriorityBlockingQueue<ClientMessage<?>>> messageMap = new HashMap<String,PriorityBlockingQueue<ClientMessage<?>>>();
 		
@@ -499,7 +503,7 @@ public class TransponderTCP implements Runnable {
 		return messageMap;
 	}
 	
-	public ArrayList<ClientMessage<?>> getServerRecievedMsgOrdered(Comparator<ClientMessage<?>> comparator){
+	public ArrayList<ClientMessage<?>> getServerRecievedCMsOrdered(Comparator<ClientMessage<?>> comparator){
 		ArrayList<ClientMessage<?>> messageList = new ArrayList<ClientMessage<?>>();
 		
 		for (tServerTCP currServer : this.tServerSet) {
@@ -519,11 +523,11 @@ public class TransponderTCP implements Runnable {
 		return messageList;
 	}
 	
-	public boolean getNewClientMessageFlag() {
+	public boolean getNewCMFlag() {
 		return this.newClientMessage;
 	}
 	
-	public boolean getNewServerMessageFlag() {
+	public boolean getNewSMFlag() {
 		return this.newClientMessage;
 	}
 
@@ -540,7 +544,7 @@ public class TransponderTCP implements Runnable {
 
 	}
 
-	public void clientSendMessage(ClientMessage<?> message) {
+	public void clientSendCM(ClientMessage<?> message) {
 		// Sends the specified message to all clients.
 		// TODO: Think about how we can specify clients to send messages to in the
 		// future.
@@ -549,8 +553,12 @@ public class TransponderTCP implements Runnable {
 		}
 	}
 
-	public ClientMessage<?> clientGetLastMessage() throws InterruptedException {
+	public ClientMessage<?> clientGetLastCM() throws InterruptedException {
 		return this.clientMessagesMaster.take();
+	}
+	
+	public ServerMessage<?> clientGetLastSM() throws InterruptedException {
+		return this.serverMessagesMaster.take();
 	}
 
 }

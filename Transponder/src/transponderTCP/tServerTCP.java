@@ -327,9 +327,9 @@ public class tServerTCP implements Runnable {
 					}
 
 					// Transmit the object via ObjOutputStream!
+					this.objOutputStream.reset();
 					this.objOutputStream.writeObject(servMessage);
 					this.objOutputStream.flush();
-					this.objOutputStream.reset();
 				}
 			}
 

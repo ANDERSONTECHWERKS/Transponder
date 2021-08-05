@@ -42,7 +42,7 @@ public class Tests extends TestCase{
 			servSock.bind(serverSockAddr);
 			
 			testTranspServer = new TransponderTCP(servSock);
-			testTranspServer.setServerMessage(testPayload);
+			testTranspServer.setInitServerMessage(testPayload);
 			testTranspServer.setDebugFlag(true);
 			testTranspServer.setDebugObject(dObj);
 			Thread transpServThread = new Thread(testTranspServer);
@@ -140,7 +140,7 @@ public class Tests extends TestCase{
 
 		TransponderTCP testTransp = new TransponderTCP(serverSock);
 		
-		testTransp.setServerMessage(testPayload);
+		testTransp.setInitServerMessage(testPayload);
 		
 		Thread serverThread = new Thread(testTransp);
 		
@@ -208,7 +208,7 @@ public class Tests extends TestCase{
 		TransponderTCP testTranspTCP = new TransponderTCP(serverSock);
 
 		testTranspTCP.setDebugFlag(true);
-		testTranspTCP.setServerMessage(testPayload);
+		testTranspTCP.setInitServerMessage(testPayload);
 		testTranspTCP.setDebugObject(debugger);
 
 		Thread transpThread = new Thread(testTranspTCP);
@@ -293,7 +293,7 @@ public class Tests extends TestCase{
 		Payload testPayload = new Payload(7,"SIGMA");
 
 		testTranspTCP.setDebugFlag(true);
-		testTranspTCP.setServerMessage(testPayload);
+		testTranspTCP.setInitServerMessage(testPayload);
 		
 		Thread transpThread = new Thread(testTranspTCP);
 		
@@ -371,7 +371,7 @@ public class Tests extends TestCase{
 		Payload testPayload2 = new Payload(8,"Large Fries");
 		
 		testTranspServ.setDebugFlag(true);
-		testTranspServ.setServerMessage(testPayload);
+		testTranspServ.setInitServerMessage(testPayload);
 		
 		Thread transpThread = new Thread(testTranspServ);
 		
@@ -411,20 +411,20 @@ public class Tests extends TestCase{
 		Thread transpClientThread = new Thread(testTranspCli);
 		transpClientThread.start();
 		
-		testTranspCli.clientSendMessage(testMessage1);
-		testTranspCli.clientSendMessage(testMessage2);
-		testTranspCli.clientSendMessage(testMessage3);
+		testTranspCli.clientSendCM(testMessage1);
+		testTranspCli.clientSendCM(testMessage2);
+		testTranspCli.clientSendCM(testMessage3);
 
 		
-		testTranspServ.serverSendMessage(testPayload2);
+		testTranspServ.allServersSendMessage(testPayload2);
 
 		
 		
-		HashMap<String,PriorityBlockingQueue<ClientMessage<?>>> serverMap = testTranspServ.getServerRecievedMessageMap();
+		HashMap<String,PriorityBlockingQueue<ClientMessage<?>>> serverMap = testTranspServ.getServerRecievedCMMap();
 		
 		Comparator<ClientMessage<?>> dateComp = new MessageDateComparator();
 		
-		System.out.println("Server recieved the following messages:\n" + testTranspServ.getServerRecievedMsgOrdered(dateComp));
+		System.out.println("Server recieved the following messages:\n" + testTranspServ.getServerRecievedCMsOrdered(dateComp));
 
 	}
 }

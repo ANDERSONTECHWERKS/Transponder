@@ -39,7 +39,7 @@ public class ControllerMenu {
 			// prompt and initialize the payload.
 			ServerMessage initServMessage = this.promptServerMessage(inputScanner);
 
-			this.currTransponder.setServerMessage(initServMessage);
+			this.currTransponder.setInitServerMessage(initServMessage);
 
 			// Debug prompt and set
 			this.debugFlag = this.promptDebugFlag(inputScanner);
@@ -105,7 +105,7 @@ public class ControllerMenu {
 			// prompt and initialize the payload.
 			ServerMessage initServMessage = this.promptServerMessage(inputScanner);
 
-			this.currTransponder.setServerMessage(initServMessage);
+			this.currTransponder.setInitServerMessage(initServMessage);
 
 			// Debug prompt and set
 			this.debugFlag = this.promptDebugFlag(inputScanner);
@@ -230,7 +230,7 @@ public class ControllerMenu {
 						// prompt and initialize the payload.
 						ServerMessage initServerMessage = this.promptServerMessage(inputScanner);
 
-						this.currTransponder.setServerMessage(initServerMessage);
+						this.currTransponder.setInitServerMessage(initServerMessage);
 
 						// Debug prompt and set
 						this.debugFlag = this.promptDebugFlag(inputScanner);
