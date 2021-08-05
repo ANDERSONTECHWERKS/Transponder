@@ -345,10 +345,12 @@ public class Tests extends TestCase{
 	}
 	
 	@Test
-	public void testMultipleClientsMultiMessage() {
+	public void testSingleTranspCliServ() {
 		InetSocketAddress serverAddr = new InetSocketAddress(InetAddress.getLoopbackAddress(),6969);
 		InetSocketAddress clientAddr = new InetSocketAddress(InetAddress.getLoopbackAddress(),7000);
 		ServerSocket servSock = null;
+		Socket clientSock = new Socket();
+
 		
 		ClientMessage<String> testMessage1 = new ChatMessage("Test1");
 		
@@ -356,6 +358,13 @@ public class Tests extends TestCase{
 		
 		ClientMessage<String> testMessage3 = new ChatMessage("Test3");
 		
+		ClientMessage<String> testMessage4 = new ChatMessage("Test4");
+		
+
+		ServerMessage<?> testPayload = new Payload(7,"SIGMA");
+		ServerMessage<?> testPayload2 = new Payload(8,"Large Fries");
+		
+		// setup server socket, then client socket
 		try {
 			servSock = new ServerSocket();
 			servSock.bind(serverAddr);
@@ -364,6 +373,80 @@ public class Tests extends TestCase{
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
+		
+		try {
+			clientSock.setReuseAddress(true);
+			clientSock.bind(clientAddr);
+			clientSock.connect(serverAddr);
+		} catch (SocketException e1) {
+			// TODO Auto-generated catch block
+			e1.printStackTrace();
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		
+		
+		// initialize server transponder
+		TransponderTCP testTranspServ = new TransponderTCP(1,true);
+
+		testTranspServ.setDebugFlag(true);
+		testTranspServ.setInitServerMessage(testPayload);
+		testTranspServ.setServerSocket(servSock);
+		
+		Thread transpServThread = new Thread(testTranspServ);
+		
+		transpServThread.start();
+		
+		
+		// initialize client transponder
+		TransponderTCP testTranspCli = new TransponderTCP(2, true);
+		
+		testTranspCli.addClient(clientSock);
+		
+		Thread transpCliThread = new Thread(testTranspCli);
+		
+		transpCliThread.start();
+
+		
+		testTranspServ.sendClientMessage(testMessage1);
+		testTranspServ.sendClientMessage(testMessage2);
+		
+		testTranspCli.sendClientMessage(testMessage3);
+		testTranspCli.sendClientMessage(testMessage4);
+		
+		testTranspServ.allServersSendMessage(testPayload);
+		testTranspServ.allServersSendMessage(testPayload2);
+	}
+	
+	@Test
+	public void testMultipleTranspCliServ() {
+		
+		InetSocketAddress serverAddr = new InetSocketAddress(InetAddress.getLoopbackAddress(),6969);
+		InetSocketAddress clientAddr = new InetSocketAddress(InetAddress.getLoopbackAddress(),7000);
+		
+		ServerSocket servSock = null;
+		
+		ClientMessage<String> testMessage1 = new ChatMessage("Test1");
+		
+		ClientMessage<String> testMessage2 = new ChatMessage("Test2");
+		
+		ClientMessage<String> testMessage3 = new ChatMessage("Test3");
+		
+		ClientMessage<String> testMessage4 = new ChatMessage("Test4");
+		
+		// setup client and server sockets
+		try {
+			servSock = new ServerSocket();
+			servSock.bind(serverAddr);
+			
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		
+
+		
 		
 		TransponderTCP testTranspServ = new TransponderTCP(servSock);
 
@@ -387,18 +470,12 @@ public class Tests extends TestCase{
 			InetSocketAddress clientAddrInc = new InetSocketAddress(InetAddress.getLoopbackAddress(),incPort);
 
 			Socket clientSock = new Socket();
-			
+
 			try {
 				clientSock.setReuseAddress(true);
-			} catch (SocketException e1) {
-				// TODO Auto-generated catch block
-				e1.printStackTrace();
-			}
-
-			try {
-
 				clientSock.bind(clientAddrInc);
 				clientSock.connect(serverAddr);
+				
 			} catch (IOException e) {
 				// TODO Auto-generated catch block
 				e.printStackTrace();
@@ -411,9 +488,11 @@ public class Tests extends TestCase{
 		Thread transpClientThread = new Thread(testTranspCli);
 		transpClientThread.start();
 		
-		testTranspCli.clientSendCM(testMessage1);
-		testTranspCli.clientSendCM(testMessage2);
-		testTranspCli.clientSendCM(testMessage3);
+		testTranspCli.sendClientMessage(testMessage1);
+		testTranspCli.sendClientMessage(testMessage2);
+		testTranspCli.sendClientMessage(testMessage3);
+		
+		testTranspServ.sendClientMessage(testMessage4);
 
 		
 		testTranspServ.allServersSendMessage(testPayload2);
