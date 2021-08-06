@@ -95,14 +95,13 @@ public class tServerTCP implements Runnable {
 					System.out.println("tServer| Message reads: \n" + inpMessage.toString());
 				}
 
-				synchronized (this.parentTransponder.getMasterCliMsg()) {
-					// add message to the master list
-					this.parentTransponder.getMasterCliMsg().put(inpMessage);
+				// add message to the master list
+				this.parentTransponder.addCliMessageToMaster(inpMessage);
 
-					// New message has been collected, setting parentTransponder.newClientMessage
-					// flag to true
-					this.parentTransponder.setNewClientMessageFlag(true);
-				}
+				// New message has been collected, setting parentTransponder.newClientMessage
+				// flag to true
+				this.parentTransponder.setNewClientMessageFlag(true);
+
 			}
 
 			if (input instanceof ServerMessage<?>) {
@@ -117,7 +116,7 @@ public class tServerTCP implements Runnable {
 
 				synchronized (this.parentTransponder.getMasterServMsg()) {
 					// add this to the list of messages we recieved
-					this.parentTransponder.getMasterServMsg().put(inpMessage);
+					this.parentTransponder.addServMessageToMaster(inpMessage);
 					// New message has been collected, setting parentTransponder.newServerMessage
 					// flag to true
 					this.parentTransponder.setNewServerMessageFlag(true);
@@ -290,7 +289,7 @@ public class tServerTCP implements Runnable {
 					}
 
 					this.preflight();
-					
+
 					// Transmit the object via ObjOutputStream!
 					this.objOutputStream.writeObject(servMessage);
 					this.objOutputStream.flush();
@@ -337,7 +336,7 @@ public class tServerTCP implements Runnable {
 		} catch (SocketException e) {
 			System.out.println("tServer| Socket Exception occurred!");
 			e.printStackTrace();
-			
+
 		} catch (IOException e) {
 			System.out.println("tServer| IO Exception occurred!");
 			e.printStackTrace();
@@ -422,30 +421,30 @@ public class tServerTCP implements Runnable {
 		// Keep in this block until we know where we want it to go
 		// TL;DR: If the debugFlag is true, we will output any/all relevant
 		// socket and stream information before we transmit
-		
-		if(this.remoteSocketTCP != null) {
-			if(!this.remoteSocketTCP.isBound()) {
+
+		if (this.remoteSocketTCP != null) {
+			if (!this.remoteSocketTCP.isBound()) {
 				throw new IllegalStateException("tServer| Remote socket is unbound!");
 			}
-			
-			if(this.remoteSocketTCP.isClosed()) {
+
+			if (this.remoteSocketTCP.isClosed()) {
 				throw new IllegalStateException("tServer| Remote socket is closed!");
 			}
-			
-			if(this.remoteSocketTCP.isConnected()) {
-				if(this.objInputStream == null && this.objOutputStream == null) {
-					
-					if(this.objOutputStream == null && this.objInputStream == null && this.serverBuffOutStream == null
-							&& this.serverBuffOutStream == null &&
-							this.inputStream == null && this.outputStream == null) {
-						
+
+			if (this.remoteSocketTCP.isConnected()) {
+				if (this.objInputStream == null && this.objOutputStream == null) {
+
+					if (this.objOutputStream == null && this.objInputStream == null && this.serverBuffOutStream == null
+							&& this.serverBuffOutStream == null && this.inputStream == null
+							&& this.outputStream == null) {
+
 						this.createOutputStreams();
 						this.createInputStreams();
 					}
 				}
 			}
 		}
-		
+
 		if (this.debugFlag == true) {
 			System.out.println("tServer| ServerSocket and Stream Status:");
 
@@ -475,8 +474,6 @@ public class tServerTCP implements Runnable {
 				System.out.println("tServer| debugPayloadIntegrity ran...");
 				System.out.println("tServer| Transmitting Payload...");
 			}
-			
-			
 
 			System.out.println("tServer| Serving Client connected from: "
 					+ this.remoteSocketTCP.getRemoteSocketAddress().toString());
@@ -585,18 +582,18 @@ public class tServerTCP implements Runnable {
 
 		status += "tServer| Connection Status: \n";
 
-		status += "---Local Address settings--- \n";
-
 		if (this.remoteSocketTCP == null) {
 			status += "tServer| remoteSocketTCP set to null!\n";
-		} else {
+		}
+		
+		if (this.remoteSocketTCP instanceof Socket) {
 			status += "tServer| Local Address set to:\n";
 			status += "tServer| TCP: " + this.remoteSocketTCP.getLocalSocketAddress().toString() + "\n";
 			status += "tServer| Is socket bound? : " + this.remoteSocketTCP.isBound() + "\n";
 			status += "tServer| Is socket closed? : " + this.remoteSocketTCP.isClosed() + "\n";
-			status += "Remote Address set to:\n";
-			status += "TCP: " + this.remoteSocketTCP.getRemoteSocketAddress().toString();
-			status += "Is remote socket connected? : " + this.remoteSocketTCP.isConnected() + "\n";
+			status += "tServer| Remote Address set to:\n";
+			status += "tServer| TCP: " + this.remoteSocketTCP.getRemoteSocketAddress().toString() + "\n";
+			status += "tServer| Socket Connected? " + this.remoteSocketTCP.isConnected() + "\n";
 		}
 
 		status += "---ServerMessage status--- \n";
@@ -605,7 +602,7 @@ public class tServerTCP implements Runnable {
 			status += "ServerMessage is not present!\n";
 		} else {
 			status += "ServerMessage loaded. Current ServerMessage:\n";
-			status += this.currServMessage.toString();
+			status += this.currServMessage.toString() + "\n";
 		}
 
 		return status;

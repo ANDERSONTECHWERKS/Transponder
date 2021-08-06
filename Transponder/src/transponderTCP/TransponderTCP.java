@@ -87,7 +87,7 @@ public class TransponderTCP implements Runnable {
 		this.mode = 2;
 
 		tClientTCP client = new tClientTCP(clientSock);
-
+		
 		client.setParentTransponder(this);
 
 		this.tClientSet.add(client);
@@ -576,13 +576,14 @@ public class TransponderTCP implements Runnable {
 		
 		if(this.mode == 1) {
 			if(this.debugFlag == true) {
-				System.out.println("TransponderTCP| Server-mode sending ClientMessage: "
-			+ message + " to all servers! \n");
+				System.out.println("TransponderTCP| Server-mode transponder sending ClientMessage: "
+			+ message + " to each client! \n");
 				
 			}
-			for(tServerTCP currServer : this.tServerSet) {
-				
 
+			this.clientMessagesMaster.put(message);
+			
+			for(tServerTCP currServer : this.tServerSet) {
 				currServer.sendClientMessage(message);
 			}
 		}
@@ -590,8 +591,8 @@ public class TransponderTCP implements Runnable {
 		if(this.mode == 2) {
 			
 			if(this.debugFlag == true) {
-				System.out.println("TransponderTCP| Client-mode sending ClientMessage: "
-			+ message + " to all Clients! \n");
+				System.out.println("TransponderTCP| Client-mode transponder sending ClientMessage: "
+			+ message + " to each server! \n");
 				
 			}
 			

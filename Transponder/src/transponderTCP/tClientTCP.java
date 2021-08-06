@@ -342,7 +342,6 @@ public class tClientTCP implements Runnable {
 				
 				// If we recieve a clientMessage - throw it into the clientMessages queue
 				
-				this.lastClientMessage = inpCliMess;
 
 				// Debug output
 				if (this.debugFlag == true) {
@@ -357,6 +356,8 @@ public class tClientTCP implements Runnable {
 					}
 				}
 
+				this.lastClientMessage = inpCliMess;
+
 				// Add received message to master list
 				this.parentTransponder.addCliMessageToMaster(inpCliMess);
 				
@@ -369,7 +370,7 @@ public class tClientTCP implements Runnable {
 
 			if (inputObj instanceof ServerMessage<?>) {
 
-				this.lastServMessage = (ServerMessage<?>) inputObj;
+				ServerMessage<?> castMessage = (ServerMessage<?>) inputObj;
 
 				// Debug output
 				if (this.debugFlag == true) {
@@ -384,6 +385,7 @@ public class tClientTCP implements Runnable {
 					}
 
 				}
+				this.lastServMessage = castMessage;
 
 				// Add received message to master list
 				this.parentTransponder.addServMessageToMaster(lastServMessage);

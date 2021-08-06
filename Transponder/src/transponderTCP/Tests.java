@@ -412,10 +412,10 @@ public class Tests extends TestCase{
 		testTranspServ.allServersSendMessage(testPayload);
 		testTranspServ.allServersSendMessage(testPayload2);
 		
-		System.out.println("Client Master ClientMessage list contains the following:" + testTranspCli.getMasterCliMsg().toString()+ "\n");
-		System.out.println("Client Master ServerMessage list contains the following:" + testTranspCli.getMasterServMsg().toString()+ "\n");
-		System.out.println("Server Master ClientMessage list contains the following:" + testTranspServ.getMasterCliMsg().toString()+ "\n");
-		System.out.println("Server Master ServerMessage list contains the following:" + testTranspServ.getMasterServMsg().toString()+ "\n");
+		System.out.println("Client Master ClientMessage list contains the following: \n" + testTranspCli.getMasterCliMsg().toString()+ "\n");
+		System.out.println("Client Master ServerMessage list contains the following: \n" + testTranspCli.getMasterServMsg().toString()+ "\n");
+		System.out.println("Server Master ClientMessage list contains the following: \n " + testTranspServ.getMasterCliMsg().toString()+ "\n");
+		System.out.println("Server Master ServerMessage list contains the following: \n" + testTranspServ.getMasterServMsg().toString()+ "\n");
 		
 	}
 	
