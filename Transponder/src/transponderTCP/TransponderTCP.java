@@ -490,8 +490,11 @@ public class TransponderTCP implements Runnable {
 		if (this.csonSet.contains(cson)) {
 			System.out.println("TransponderTCP| clientSignOn object already present!");
 		}
+		
+		if(this.debugFlag == true) {
+			System.out.println("TransponderTCP| new signon from:" + cson.getClientAddr().toString());
+		}
 
-		System.out.println("TransponderTCP| new signon from:" + cson.getClientAddr().toString());
 		this.csonSet.add(cson);
 	}
 
@@ -500,7 +503,11 @@ public class TransponderTCP implements Runnable {
 		if (this.csoffSet.contains(csoff)) {
 			System.out.println("TransponderTCP| clientSignOff object already present!");
 		}
-		System.out.println("TransponderTCP| new signoff from:" + csoff.getClientAddr().toString());
+		
+		if(this.debugFlag == true) {
+			System.out.println("TransponderTCP| new signoff from:" + csoff.getClientAddr().toString());
+		}
+
 		this.csoffSet.add(csoff);
 
 	}
@@ -531,6 +538,7 @@ public class TransponderTCP implements Runnable {
 	}
 	
 	public ArrayList<ServerMessage<?>> getServerRecievedSMsOrdered(Comparator<ServerMessage<?>> comparator) {
+		
 		ArrayList<ServerMessage<?>> messageList = new ArrayList<ServerMessage<?>>();
 
 		PriorityBlockingQueue<ServerMessage<?>> servMessages = this.serverMessagesMaster;
@@ -542,6 +550,26 @@ public class TransponderTCP implements Runnable {
 		messageList.sort(comparator);
 
 		return messageList;
+	}
+	
+	public String getClientStatus() {
+		String result = "";
+		
+		for (tClientTCP currClient : this.tClientSet) {
+			result += currClient.getStatus() + "\n";
+		}
+		
+		return result;
+	}
+	
+	public String getServerStatus() {
+		String result = "";
+
+		for (tServerTCP currServ : this.tServerSet) {
+			result += currServ.getStatus() + "\n";
+		}
+		
+		return result;
 	}
 
 	public void serverSendSM(ServerMessage<?> sm, tServerTCP server) {
@@ -569,7 +597,7 @@ public class TransponderTCP implements Runnable {
 
 	}
 
-	public void sendClientMessage(ClientMessage<?> message) {
+	public void sendClientMessageToAll(ClientMessage<?> message) {
 		// Sends the specified message to all clients.
 		// TODO: Think about how we can specify clients to send messages to in the
 		// future.
@@ -601,6 +629,18 @@ public class TransponderTCP implements Runnable {
 			}
 		}
 
+	}
+	
+	public void sendServerMessageToAll(ServerMessage<?> message) {
+		if(this.mode != 1) {
+			throw new IllegalStateException("Transponder is in mode " + this.mode +
+					" which does not support sending ServerMessages!\n");
+		} else {
+			
+			for (tServerTCP currServ : this.tServerSet) {
+				currServ.sendServerMessage(message);
+			}
+		}
 	}
 
 	public ClientMessage<?> getLastCM() throws InterruptedException {

@@ -403,11 +403,11 @@ public class Tests extends TestCase{
 		transpCliThread.start();
 
 		
-		testTranspServ.sendClientMessage(testMessage1);
-		testTranspServ.sendClientMessage(testMessage2);
+		testTranspServ.sendClientMessageToAll(testMessage1);
+		testTranspServ.sendClientMessageToAll(testMessage2);
 		
-		testTranspCli.sendClientMessage(testMessage3);
-		testTranspCli.sendClientMessage(testMessage4);
+		testTranspCli.sendClientMessageToAll(testMessage3);
+		testTranspCli.sendClientMessageToAll(testMessage4);
 		
 		testTranspServ.allServersSendMessage(testPayload);
 		testTranspServ.allServersSendMessage(testPayload2);
@@ -488,11 +488,11 @@ public class Tests extends TestCase{
 		Thread transpClientThread = new Thread(testTranspCli);
 		transpClientThread.start();
 		
-		testTranspCli.sendClientMessage(testMessage1);
-		testTranspCli.sendClientMessage(testMessage2);
-		testTranspCli.sendClientMessage(testMessage3);
+		testTranspCli.sendClientMessageToAll(testMessage1);
+		testTranspCli.sendClientMessageToAll(testMessage2);
+		testTranspCli.sendClientMessageToAll(testMessage3);
 		
-		testTranspServ.sendClientMessage(testMessage4);
+		testTranspServ.sendClientMessageToAll(testMessage4);
 
 		
 		testTranspServ.allServersSendMessage(testPayload2);
@@ -502,4 +502,5 @@ public class Tests extends TestCase{
 		System.out.println("Server recieved the following messages:\n" + testTranspServ.getServerRecievedCMsOrdered(dateComp));
 
 	}
+	
 }

@@ -6,6 +6,7 @@ import java.net.InetSocketAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.net.UnknownHostException;
+import java.util.ArrayList;
 import java.util.Scanner;
 
 public class ControllerMenu {
@@ -37,7 +38,7 @@ public class ControllerMenu {
 
 			// After creating the transponder,
 			// prompt and initialize the payload.
-			ServerMessage initServMessage = this.promptServerMessage(inputScanner);
+			ServerMessage<?> initServMessage = this.promptServerMessage(inputScanner);
 
 			this.currTransponder.setInitServerMessage(initServMessage);
 
@@ -103,7 +104,7 @@ public class ControllerMenu {
 
 			// After creating the transponder,
 			// prompt and initialize the payload.
-			ServerMessage initServMessage = this.promptServerMessage(inputScanner);
+			ServerMessage<?> initServMessage = this.promptServerMessage(inputScanner);
 
 			this.currTransponder.setInitServerMessage(initServMessage);
 
@@ -155,14 +156,45 @@ public class ControllerMenu {
 
 	// controllerCMD contains the actual application engine via while loop
 	public void controllerCMD(Scanner userInput) {
+		
+		ClientMessage<?> clientMess = null;
+		ServerMessage<?> serverMess = null;
 
 		// TODO: Fix menu object IAW their related menu items
 		while (stopFlag == false) {
+			
+			
 
 			System.out.println("---COMMANDS---");
 
-			String[] commandList = { "1. Transponder Status", "2. Configure Transponder", "3. Start Transponder",
-					"4. Stop Transponder", "5. Exit" };
+			ArrayList<String> commandList = new ArrayList<String>();
+			
+			commandList.add("1. Transponder Status");
+			commandList.add("2. Configure Transponder");
+			commandList.add("3. Start Transponder");
+			commandList.add("4. Stop Transponder");
+			commandList.add("5. Exit");
+			
+			// Additional transponder options for an already-running transponder 
+			// in mode 1 or 2
+			
+			// Server-mode additional options
+			if(this.mode == 1) {
+				commandList.add("6. Print client(s) information");
+				commandList.add("7. Set ClientMessage Content");
+				commandList.add("8. Set ServerMessage Content");
+				commandList.add("9. Send ClientMessage to all clients");
+				commandList.add("10. Send ServerMessage to all clients");
+			}
+			
+			// Client-mode additional options
+			if(this.mode == 2) {
+				commandList.add("6. Print server information");
+				commandList.add("7. Set ClientMessage Content");
+				commandList.add("8. Set ServerMessage Content");
+				commandList.add("9. Send ClientMessage to all clients");
+				commandList.add("10. Send ServerMessage to all clients");
+			}
 
 			// Iterate through options, printing each out.
 			for (String currString : commandList) {
@@ -228,7 +260,7 @@ public class ControllerMenu {
 
 						// After creating the transponder,
 						// prompt and initialize the payload.
-						ServerMessage initServerMessage = this.promptServerMessage(inputScanner);
+						ServerMessage<?> initServerMessage = this.promptServerMessage(inputScanner);
 
 						this.currTransponder.setInitServerMessage(initServerMessage);
 
@@ -350,8 +382,128 @@ public class ControllerMenu {
 				if (this.currTransponder != null) {
 					this.currTransponder.stopAll();
 				}
+				break;
+				
+			case 6:
+				// case 6: print information about underlying client/server status
+				if(this.mode == 0) {
+					System.out.println("This option not relevant for mode 0");
+				}
+				
+				if(this.mode == 1) {
+					System.out.println(this.currTransponder.getServerStatus());
+				}
+				
+				if(this.mode == 2) {
+					System.out.println(this.currTransponder.getClientStatus());
+				}
 
 				break;
+				
+			case 7:
+				// case 7: Set ClientMessage Content
+				Scanner userInput2 = new Scanner(System.in);
+
+				if(this.mode == 0) {
+					System.out.println("This option not relevant for mode 0");
+				}
+				
+				
+				if(this.mode == 1) {
+					System.out.println("Enter text to be used in the ClientMessage (ChatMessage):");
+					String cm = userInput2.nextLine();
+					clientMess = new ChatMessage(cm);
+					System.out.println("Created ChatMessage:\n" + cm.toString());
+				}
+				
+				if(this.mode == 2) {
+					System.out.println("Enter text to be used in the ClientMessage (ChatMessage):");
+					String cm = userInput2.nextLine();
+					clientMess = new ChatMessage(cm);
+					System.out.println("Created ChatMessage:\n" + cm.toString());
+				}
+				break;
+				
+			case 8:
+				Scanner userInput3 = new Scanner(System.in);
+				
+				//"8. Set ServerMessage Content"
+				if(this.mode == 0) {
+					System.out.println("This option not relevant for mode 0");
+				}
+				
+				if(this.mode == 1) {
+					System.out.println("Enter text to be used in the ServerMessage (Payload):");
+					String sm = userInput3.nextLine();
+					serverMess = new Payload(1,sm);
+					System.out.println("Created Payload:\n" + sm.toString());
+				}
+				
+				if(this.mode == 2) {
+					System.out.println("This option not relevant for mode 2");
+				}
+				break;
+			case 9:
+				//9. Send ClientMessage to all clients
+				if(this.mode == 0) {
+					System.out.println("This option not relevant for mode 0");
+				}
+				
+				if(this.mode == 1) {
+					if(clientMess == null) {
+						System.out.println("ClientMessage was never set! Returning to menu.");
+						break;
+					} else {
+						if(this.debugFlag == true) {
+							System.out.println("Sending ClientMessage to all clients!");
+						}
+						this.currTransponder.sendClientMessageToAll(clientMess);
+					}
+				}
+				
+				if(this.mode == 2) {
+					if(clientMess == null) {
+						System.out.println("ClientMessage was never set! Returning to menu.");
+						break;
+					} else {
+						if(this.debugFlag == true) {
+							System.out.println("Sending ClientMessage to all servers!");
+						}
+						this.currTransponder.sendClientMessageToAll(clientMess);
+					}
+				}
+				break;
+			
+			case 10:
+				// 10. Send ServerMessage to all clients
+				
+				if(this.mode == 0) {
+					System.out.println("This option not relevant for mode 0");
+				}
+				
+				if(this.mode == 1) {
+					
+					if(serverMess == null) {
+						System.out.println("ServerMessage was never set! Returning to menu.");
+						break;
+						
+					} else {
+						
+						if(this.debugFlag == true) {
+							System.out.println("Sending ServerMessage to all servers!");
+						}
+						this.currTransponder.sendServerMessageToAll(serverMess);
+					}
+				}
+				
+				if(this.mode == 2) {
+					System.out.println("This option not relevant for mode 0");
+					break;
+				}
+				
+				break;
+			default:
+				System.out.println("Please choose a valid option!");
 			}
 		}
 	}
@@ -438,13 +590,13 @@ public class ControllerMenu {
 		InetAddress clientLocalAddr = null;
 
 		int clientRemoteSocket;
-		int clientLocalSocket;
+		int clientLocalPort;
 
 		// Request the address on the local machine that
 		// we want to send data from, including the port number
 		// Store as clientLocalAddr and clientLocalSocket.
 
-		System.out.println("Client IP Address: \n");
+		System.out.println("Enter Client IP Address: \n");
 
 		try {
 			clientLocalAddr = InetAddress.getByName(userInput.next());
@@ -452,20 +604,21 @@ public class ControllerMenu {
 			e.printStackTrace();
 		}
 
-		System.out.println("Client Socket:\n");
+		System.out.println("Enter Client Port:\n");
 
-		clientLocalSocket = userInput.nextInt();
+		clientLocalPort = userInput.nextInt();
 
 		// Request the address for the remote machine that we want
 		// to connect to, store as clientRemoteAddr.
-		System.out.println("Remote Server IP Address:\n");
+		System.out.println("Enter Remote Server IP Address:\n");
+		
 		try {
 			clientRemoteAddr = InetAddress.getByName(userInput.next());
 		} catch (UnknownHostException e) {
 			e.printStackTrace();
 		}
 
-		System.out.println("Remote Server Socket:\n");
+		System.out.println("Enter Remote Server Port:\n");
 		clientRemoteSocket = userInput.nextInt();
 
 		// Attempt creating a new Socket object using clientRemoteaddr,
@@ -473,7 +626,7 @@ public class ControllerMenu {
 
 		try {
 			
-			clientSocket = new Socket(clientRemoteAddr, clientRemoteSocket, clientLocalAddr, clientLocalSocket);
+			clientSocket = new Socket(clientRemoteAddr, clientRemoteSocket, clientLocalAddr, clientLocalPort);
 			
 		} catch (IOException e) {
 			System.out.println("ControllerMenu| Socket creation failed!");
@@ -522,8 +675,8 @@ public class ControllerMenu {
 	}
 
 	public Scanner getScanner() {
-		if (this.inputScanner == null) {
-			throw new IllegalStateException("Scanner not initialized!");
+		if (!(this.inputScanner instanceof Scanner)) {
+			throw new IllegalStateException("inputScanner not an instance of Scanner!");
 		} else {
 			return this.inputScanner;
 		}

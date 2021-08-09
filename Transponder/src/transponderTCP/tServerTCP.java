@@ -145,7 +145,6 @@ public class tServerTCP implements Runnable {
 				clientSignOff inpCliSignOff = (clientSignOff) input;
 
 				if (this.debugFlag == true) {
-					System.out.println("tServer| Received clientSignOff class! Closing sockets! \n");
 					System.out.println("tServer| clientSignOff object received in serviceStart() method!\n");
 				}
 
@@ -250,7 +249,9 @@ public class tServerTCP implements Runnable {
 				this.outputStream = this.remoteSocketTCP.getOutputStream();
 				this.serverBuffOutStream = new BufferedOutputStream(this.outputStream);
 				this.objOutputStream = new ObjectOutputStream(this.serverBuffOutStream);
-
+				this.objOutputStream.reset();
+				this.objOutputStream.flush();
+				
 				// debug output
 				if (this.debugFlag == true) {
 					System.out.println("tServer| outputStreams created successfully!");
@@ -579,11 +580,13 @@ public class tServerTCP implements Runnable {
 
 	public String getStatus() {
 		String status = "";
-
-		status += "tServer| Connection Status: \n";
+		
+		if(this.remoteSocketTCP != null) {
+			status += "tServer| Connection Status for tServer connected to" + this.getRemoteAddr() +": \n";
+		}
 
 		if (this.remoteSocketTCP == null) {
-			status += "tServer| remoteSocketTCP set to null!\n";
+			status += "tServer| Connection Status for (disconnected) tServer Client:\n";
 		}
 		
 		if (this.remoteSocketTCP instanceof Socket) {
