@@ -409,8 +409,8 @@ public class Tests extends TestCase{
 		testTranspCli.sendClientMessageToAll(testMessage3);
 		testTranspCli.sendClientMessageToAll(testMessage4);
 		
-		testTranspServ.allServersSendMessage(testPayload);
-		testTranspServ.allServersSendMessage(testPayload2);
+		testTranspServ.sendServerMessageToAll(testPayload);
+		testTranspServ.sendServerMessageToAll(testPayload2);
 		
 		System.out.println("Client Master ClientMessage list contains the following: \n" + testTranspCli.getMasterCliMsg().toString()+ "\n");
 		System.out.println("Client Master ServerMessage list contains the following: \n" + testTranspCli.getMasterServMsg().toString()+ "\n");
@@ -496,7 +496,7 @@ public class Tests extends TestCase{
 		testTranspServ.sendClientMessageToAll(testMessage4);
 
 		
-		testTranspServ.allServersSendMessage(testPayload2);
+		testTranspServ.sendServerMessageToAll(testPayload2);
 
 		Comparator<ClientMessage<?>> dateCompCM = new MessageDateComparatorCM();
 		Comparator<ServerMessage<?>> dateCompSM = new MessageDateComparatorSM();

@@ -385,6 +385,7 @@ public class tClientTCP implements Runnable {
 					}
 
 				}
+				
 				this.lastServMessage = castMessage;
 
 				// Add received message to master list
@@ -445,17 +446,17 @@ public class tClientTCP implements Runnable {
 
 	}
 
-	public boolean clientSendMessage(ClientMessage<?> message) {
+	public boolean sendClientMessage(ClientMessage<?> message) {
 
 		this.preflight();
 
 		try {
-			synchronized (this.objOutStream) {
+
 				this.objOutStream.writeObject(message);
 				this.objOutStream.flush();
 				this.clientBuffOutputStream.flush();
 				this.clientSocket.getOutputStream().flush();
-			}
+
 			return true;
 		} catch (IOException e) {
 			e.printStackTrace();
@@ -582,8 +583,9 @@ public class tClientTCP implements Runnable {
 			this.outputStream = this.clientSocket.getOutputStream();
 			this.clientBuffOutputStream = new BufferedOutputStream(this.outputStream);
 			this.objOutStream = new ObjectOutputStream(this.clientBuffOutputStream);
-			this.objOutStream.reset();
 			this.objOutStream.flush();
+			this.clientBuffOutputStream.flush();
+			this.clientSocket.getOutputStream().flush();
 
 
 		} catch (IOException e) {

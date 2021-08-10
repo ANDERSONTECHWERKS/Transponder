@@ -256,8 +256,9 @@ public class tServerTCP implements Runnable {
 				this.outputStream = this.remoteSocketTCP.getOutputStream();
 				this.serverBuffOutStream = new BufferedOutputStream(this.outputStream);
 				this.objOutputStream = new ObjectOutputStream(this.serverBuffOutStream);
-				this.objOutputStream.reset();
 				this.objOutputStream.flush();
+				this.serverBuffOutStream.flush();
+				this.remoteSocketTCP.getOutputStream().flush();
 				
 				// debug output
 				if (this.debugFlag == true) {
@@ -299,9 +300,11 @@ public class tServerTCP implements Runnable {
 					this.preflight();
 
 					// Transmit the object via ObjOutputStream!
+					// Flush is *all the way down*
 					this.objOutputStream.writeObject(servMessage);
 					this.objOutputStream.flush();
 					this.serverBuffOutStream.flush();
+					this.remoteSocketTCP.getOutputStream().flush();
 				}
 			}
 
@@ -338,6 +341,7 @@ public class tServerTCP implements Runnable {
 					this.objOutputStream.writeObject(message);
 					this.objOutputStream.flush();
 					this.serverBuffOutStream.flush();
+					this.remoteSocketTCP.getOutputStream().flush();
 				}
 			}
 
@@ -491,7 +495,7 @@ public class tServerTCP implements Runnable {
 	// run method for thread execution
 	@Override
 	public void run() {
-
+		
 		// Set the server options for the newly-created socket
 		// setServerOpts is where we will pass misc. options in the future!
 		// this.setServerOpts(null);
