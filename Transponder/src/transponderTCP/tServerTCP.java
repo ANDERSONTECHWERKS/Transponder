@@ -36,7 +36,7 @@ public class tServerTCP implements Runnable {
 	private ObjectOutputStream objOutputStream = null;
 	private ObjectInputStream objInputStream = null;
 
-	private ServerMessage<?> currServMessage = null;
+	private ServerMessage<?> servState = null;
 
 	private debugObj debugObject = null;
 
@@ -54,11 +54,11 @@ public class tServerTCP implements Runnable {
 		this.parentTransponder = parent;
 	}
 
-	// isPayloadPresent returns a boolean TRUE if the currServMessage
+	// isPayloadPresent returns a boolean TRUE if the servState
 	// field is populated with a Payload object, false if not.
 	public boolean isServerMessagePresent() {
 
-		if (this.currServMessage != null && this.currServMessage instanceof ServerMessage<?>) {
+		if (this.servState != null && this.servState instanceof ServerMessage<?>) {
 			return true;
 
 		} else {
@@ -75,7 +75,7 @@ public class tServerTCP implements Runnable {
 	// listen for messages from client-side, process them according to the message
 	// object.
 
-	public void serviceStart() {
+	public synchronized void service() {
 
 		try {
 
@@ -95,12 +95,17 @@ public class tServerTCP implements Runnable {
 					System.out.println("tServer| Message reads: \n" + inpMessage.toString());
 				}
 
-				// add message to the master list
-				this.parentTransponder.addCliMessageToMaster(inpMessage);
+				synchronized(this.parentTransponder.getMasterCliMsg()) {
+					
+					// add message to the master list
+					this.parentTransponder.addCliMessageToMaster(inpMessage);
 
-				// New message has been collected, setting parentTransponder.newClientMessage
-				// flag to true
-				this.parentTransponder.setNewClientMessageFlag(true);
+					// New message has been collected, setting parentTransponder.newClientMessage
+					// flag to true
+					this.parentTransponder.setNewClientMessageFlag(true);
+					
+				}
+
 
 			}
 
@@ -115,11 +120,13 @@ public class tServerTCP implements Runnable {
 				}
 
 				synchronized (this.parentTransponder.getMasterServMsg()) {
+					
 					// add this to the list of messages we recieved
 					this.parentTransponder.addServMessageToMaster(inpMessage);
 					// New message has been collected, setting parentTransponder.newServerMessage
 					// flag to true
 					this.parentTransponder.setNewServerMessageFlag(true);
+					
 				}
 
 			}
@@ -136,7 +143,7 @@ public class tServerTCP implements Runnable {
 				this.processSignOn(inpCliSignOn);
 
 				// Initial Transmit: Send initial payload transmission. This syncs states.
-				this.sendServerMessage(this.currServMessage);
+				this.sendServerMessage(this.servState);
 
 			}
 
@@ -194,15 +201,15 @@ public class tServerTCP implements Runnable {
 	}
 
 	// setOutgoingPayload assigns an outgoing payload object to this
-	// tServer's currServMessage field.
+	// tServer's servState field.
 	public void setServerMessage(ServerMessage<?> servMessage) {
 
 		// debug output for when debugFlag set to TRUE
 		if (this.debugFlag == true) {
-			System.out.println("tServer setting currServMessage to" + this.currServMessage.toString() + "\n");
+			System.out.println("tServer setting servState to" + this.servState.toString() + "\n");
 		}
 
-		this.currServMessage = servMessage;
+		this.servState = servMessage;
 	}
 
 	public void setParentTransponder(TransponderTCP parent) {
@@ -268,7 +275,7 @@ public class tServerTCP implements Runnable {
 
 	}
 
-	// transmitPayload checks for the presence of an currServMessage,
+	// transmitPayload checks for the presence of an servState,
 	// then creates an outputStream, as well as an associated object output stream
 	// (objOutputStream) and writes the object to the output
 	public void sendServerMessage(ServerMessage<?> servMessage) {
@@ -499,7 +506,7 @@ public class tServerTCP implements Runnable {
 		// accordingly.
 
 		while (stopFlag == false) {
-			serviceStart();
+			service();
 		}
 
 		// After we close from the listening loop - close our IO and finish the run
@@ -532,13 +539,13 @@ public class tServerTCP implements Runnable {
 		System.out.println("tServer| Will report payload to debugObj!");
 
 		if (this.debugFlag == true) {
-			if (this.currServMessage == null) {
-				System.out.println("tServer| currServMessage not set!");
+			if (this.servState == null) {
+				System.out.println("tServer| servState not set!");
 			}
 		}
 
-		if (this.currServMessage != null) {
-			this.debugObject.setInpServerMessage(currServMessage);
+		if (this.servState != null) {
+			this.debugObject.setInpServerMessage(servState);
 		}
 
 	}
@@ -563,10 +570,10 @@ public class tServerTCP implements Runnable {
 
 	public int getServMessageHash() {
 
-		if (this.currServMessage != null) {
-			return this.currServMessage.hashCode();
+		if (this.servState != null) {
+			return this.servState.hashCode();
 		} else {
-			throw new IllegalStateException("tServer| currServMessage is null!");
+			throw new IllegalStateException("tServer| servState is null!");
 		}
 	}
 
@@ -605,13 +612,13 @@ public class tServerTCP implements Runnable {
 			status += "ServerMessage is not present!\n";
 		} else {
 			status += "ServerMessage loaded. Current ServerMessage:\n";
-			status += this.currServMessage.toString() + "\n";
+			status += this.servState.toString() + "\n";
 		}
 
 		return status;
 	}
 
 	public ServerMessage<?> getCurrServerMessage() {
-		return this.currServMessage;
+		return this.servState;
 	}
 }

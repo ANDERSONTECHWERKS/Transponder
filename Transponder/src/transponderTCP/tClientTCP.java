@@ -325,7 +325,7 @@ public class tClientTCP implements Runnable {
 		return true;
 	}
 
-	public void receiveMessages() {
+	public synchronized void receiveMessages() {
 
 		// TODO: Create type-check for this.incomingPayload
 		// This is likely a huge security issue to just *blatantly accept* objects and

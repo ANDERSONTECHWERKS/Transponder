@@ -263,12 +263,12 @@ public class TransponderTCP implements Runnable {
 	}
 
 	// set the newServerMessage indicator flag
-	public void setNewServerMessageFlag(boolean flag) {
+	public synchronized void setNewServerMessageFlag(boolean flag) {
 		this.newServerMessage = flag;
 	}
 
 	// set the newClientMessage indicator flag
-	public void setNewClientMessageFlag(boolean flag) {
+	public synchronized void setNewClientMessageFlag(boolean flag) {
 		this.newClientMessage = flag;
 	}
 
@@ -316,8 +316,6 @@ public class TransponderTCP implements Runnable {
 
 	private void confServer() {
 		
-		System.out.println("transponderTCP| ServerMessage set to: \n" + this.initServMessage.toString());
-
 
 		if (this.serverSocket == null) {
 			throw new IllegalStateException("serverSocket not set!");
@@ -341,10 +339,20 @@ public class TransponderTCP implements Runnable {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
+		
+		if(this.initServMessage == null) {
+			throw new IllegalStateException("Transponder must have an initial "
+					+ "message set before starting server!");
+		}
 
 		// Sets the initial server message
 		if (this.initServMessage != null) {
+	
 			server.setServerMessage(this.initServMessage);
+			
+			if(this.debugFlag == true) {
+				System.out.println("tServer| initServMessage set to: \n " + this.initServMessage.toString());
+			}
 		}
 
 		// debug-specific actions when debugFlag set to TRUE
@@ -357,7 +365,7 @@ public class TransponderTCP implements Runnable {
 
 		Thread serverThread = new Thread(server);
 
-		serverThread.setName("tServer| " + server.getLocalAddr() + ":" + server.getLocalPort());
+		serverThread.setName("tServer| Listening at: " + server.getLocalAddr() + ":" + server.getLocalPort());
 
 		this.tServerSet.add(server);
 		this.serverThreads.add(serverThread);
@@ -386,7 +394,7 @@ public class TransponderTCP implements Runnable {
 
 			// Debug flag condition actions
 			if (this.debugFlag == true) {
-				currClient.setDebugFlag(true);
+				this.setDebugFlag(true);
 
 				if (this.debugObj instanceof debugObj) {
 					currClient.setDebugObj(debugObj);
@@ -435,16 +443,16 @@ public class TransponderTCP implements Runnable {
 		
 		if (this.tServerSet != null && this.tClientSet != null) {
 
-			synchronized (this.tServerSet) {
+
 				for (tServerTCP currServer : this.tServerSet) {
 					currServer.setDebugFlag(flag);
-				}
+				
 			}
 
-			synchronized (this.tServerSet) {
+
 				for (tClientTCP currClient : this.tClientSet) {
 					currClient.setDebugFlag(flag);
-				}
+				
 			}
 
 		}
@@ -648,12 +656,12 @@ public class TransponderTCP implements Runnable {
 		}
 	}
 
-	public ClientMessage<?> getLastCM() throws InterruptedException {
+	public synchronized ClientMessage<?> getLastCM() throws InterruptedException {
 		this.newClientMessage = false;
 		return this.clientMessagesMaster.take();
 	}
 
-	public ServerMessage<?> getLastSM() throws InterruptedException {
+	public synchronized ServerMessage<?> getLastSM() throws InterruptedException {
 		this.newServerMessage = false;
 		return this.serverMessagesMaster.take();
 	}
