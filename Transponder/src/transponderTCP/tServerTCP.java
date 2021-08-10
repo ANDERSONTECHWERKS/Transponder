@@ -75,7 +75,7 @@ public class tServerTCP implements Runnable {
 	// listen for messages from client-side, process them according to the message
 	// object.
 
-	public synchronized void serviceStart() {
+	public void serviceStart() {
 
 		try {
 

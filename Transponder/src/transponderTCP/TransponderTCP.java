@@ -13,7 +13,7 @@ import java.util.HashSet;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.PriorityBlockingQueue;
 import java.util.stream.Stream;
-import transponderTCP.MessageDateComparator;
+import transponderTCP.MessageDateComparatorCM;
 
 public class TransponderTCP implements Runnable {
 
@@ -432,16 +432,21 @@ public class TransponderTCP implements Runnable {
 	public void setDebugFlag(boolean flag) {
 
 		this.debugFlag = flag;
-
+		
 		if (this.tServerSet != null && this.tClientSet != null) {
 
-			for (tServerTCP currServer : this.tServerSet) {
-				currServer.setDebugFlag(flag);
+			synchronized (this.tServerSet) {
+				for (tServerTCP currServer : this.tServerSet) {
+					currServer.setDebugFlag(flag);
+				}
 			}
 
-			for (tClientTCP currClient : this.tClientSet) {
-				currClient.setDebugFlag(flag);
+			synchronized (this.tServerSet) {
+				for (tClientTCP currClient : this.tClientSet) {
+					currClient.setDebugFlag(flag);
+				}
 			}
+
 		}
 	}
 
@@ -523,7 +528,7 @@ public class TransponderTCP implements Runnable {
 	// Retrieves an ArrayList of ClientMessages logged with the server, sorted by
 	// <Comparator>.
 
-	public ArrayList<ClientMessage<?>> getServerRecievedCMsOrdered(Comparator<ClientMessage<?>> comparator) {
+	public ArrayList<ClientMessage<?>> getReceivedCMsOrdered(Comparator<ClientMessage<?>> comparator) {
 		ArrayList<ClientMessage<?>> messageList = new ArrayList<ClientMessage<?>>();
 
 		PriorityBlockingQueue<ClientMessage<?>> cliMessages = this.clientMessagesMaster;
@@ -537,7 +542,7 @@ public class TransponderTCP implements Runnable {
 		return messageList;
 	}
 	
-	public ArrayList<ServerMessage<?>> getServerRecievedSMsOrdered(Comparator<ServerMessage<?>> comparator) {
+	public ArrayList<ServerMessage<?>> getReceivedSMsOrdered(Comparator<ServerMessage<?>> comparator) {
 		
 		ArrayList<ServerMessage<?>> messageList = new ArrayList<ServerMessage<?>>();
 

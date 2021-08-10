@@ -453,7 +453,6 @@ public class Tests extends TestCase{
 		Payload testPayload = new Payload(7,"SIGMA");
 		Payload testPayload2 = new Payload(8,"Large Fries");
 		
-		testTranspServ.setDebugFlag(true);
 		testTranspServ.setInitServerMessage(testPayload);
 		
 		Thread transpThread = new Thread(testTranspServ);
@@ -461,7 +460,6 @@ public class Tests extends TestCase{
 		transpThread.start();
 		
 		TransponderTCP testTranspCli = new TransponderTCP(2);
-		testTranspCli.setDebugFlag(true);
 
 		for(int i = 0; i < 10; i++) {
 			
@@ -485,6 +483,9 @@ public class Tests extends TestCase{
 
 		}
 		
+		testTranspServ.setDebugFlag(true);
+		testTranspCli.setDebugFlag(true);
+
 		Thread transpClientThread = new Thread(testTranspCli);
 		transpClientThread.start();
 		
@@ -497,9 +498,14 @@ public class Tests extends TestCase{
 		
 		testTranspServ.allServersSendMessage(testPayload2);
 
-		Comparator<ClientMessage<?>> dateComp = new MessageDateComparator();
+		Comparator<ClientMessage<?>> dateCompCM = new MessageDateComparatorCM();
+		Comparator<ServerMessage<?>> dateCompSM = new MessageDateComparatorSM();
+
 		
-		System.out.println("Server recieved the following messages:\n" + testTranspServ.getServerRecievedCMsOrdered(dateComp));
+		System.out.println("Test Server recieved the following ClientMessages:\n" + testTranspServ.getReceivedCMsOrdered(dateCompCM));
+		System.out.println("Test Client recieve the following ServerMessages:\n" + testTranspCli.getReceivedSMsOrdered(dateCompSM));
+		System.out.println("Test Client recieve the following ClientMessages:\n" + testTranspCli.getReceivedCMsOrdered(dateCompCM));
+
 
 	}
 	
