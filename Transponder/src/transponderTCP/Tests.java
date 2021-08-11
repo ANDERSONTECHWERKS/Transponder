@@ -325,7 +325,7 @@ public class Tests extends TestCase{
 	}
 	
 	@Test
-	public void testSingleTranspCliServ() {
+	public void testSingleServerSingleClient() {
 		InetSocketAddress serverAddr = new InetSocketAddress(InetAddress.getLoopbackAddress(),6969);
 		InetSocketAddress clientAddr = new InetSocketAddress(InetAddress.getLoopbackAddress(),7000);
 		ServerSocket servSock = null;
@@ -405,7 +405,7 @@ public class Tests extends TestCase{
 	}
 	
 	@Test
-	public void testMultipleTranspCliServ() {
+	public void testSingleServerMultipleClient() {
 		
 		InetSocketAddress serverAddr = new InetSocketAddress(InetAddress.getLoopbackAddress(),6969);
 		InetSocketAddress clientAddr = new InetSocketAddress(InetAddress.getLoopbackAddress(),7000);

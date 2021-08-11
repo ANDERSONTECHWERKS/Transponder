@@ -325,7 +325,7 @@ public class tClientTCP implements Runnable {
 		return true;
 	}
 
-	public void receiveMessages() {
+	public void service() {
 
 		// TODO: Create type-check for this.incomingPayload
 		// This is likely a huge security issue to just *blatantly accept* objects and
@@ -401,29 +401,48 @@ public class tClientTCP implements Runnable {
 
 		} catch (SocketException e) {
 
-			System.out.println("tClient| Connection reset! Stopping gracefully! \n");
-
-			this.stopFlag = true;
-
-			this.closeIO();
+			if(this.debugFlag == true) {
+				System.out.println("tClient| Connection reset! Stopping gracefully!"
+						+ "\nPrinting Stack Trace since debugFlag is set to true! \n");
+				e.printStackTrace();
+			}
+			
+			this.parentTransponder.setStartedFlag(false);
+			this.stop();
 
 		} catch (EOFException e) {
 			// If the EOF is hit, because of the other side closing or some error, bring the
 			// client down gracefully.
 			// TODO: Think about what we want to do if we hit the EOF
 
-			System.out.println("tClient| End of File! Assuming remote side closed or stopped transmitting! Not fatal.\n");
+			if(this.debugFlag == true) {
+				System.out.println("tClient| End of File! Assuming remote side closed or stopped transmitting! Stopping gracefully!"
+						+ "\nPrinting Stack Trace since debugFlag is set to true!\n");
+				e.printStackTrace();
+			}
+			
+			this.parentTransponder.setStartedFlag(false);
+			this.stop();
 			
 		} catch (IOException e) {
 
-			System.out.println("tClient| IOException! Stopping gracefully! \n");
 
-			this.stopFlag = true;
-			this.closeIO();
+			if(this.debugFlag == true) {
+				System.out.println("tClient| IOException! Stopping gracefully! \n"
+						+ "Printing stack trace since debugFlag is set to true!\n");
+				e.printStackTrace();
+			}
+			
+			this.parentTransponder.setStartedFlag(false);
+			this.stop();
 
 		} catch (ClassNotFoundException e) {
 
-			System.out.println("tClient| ClassNotFound Exception thrown! Not fatal. \n");
+			if(this.debugFlag == true) {
+				System.out.println("tClient| ClassNotFound Exception thrown! Not fatal."
+						+ "\nPrinting stack trace since debugFlag is set to true!\n");
+				e.printStackTrace();
+			}
 
 		}
 
@@ -432,15 +451,15 @@ public class tClientTCP implements Runnable {
 		// Intended functionality is NOT to simply receive a payload and toString() it.
 
 		if (debugFlag == true) {
-			System.out.println("tClient| Debug - Last messages recieved:\n");
+			System.out.println("tClient| Client at localAddress "+ this.getLocalAddrString()+ "Printing Last messages recieved:\n");
 			
 			if(this.lastServMessage != null) {
-				System.out.println("Last ServerMessage reads: \n");
+				System.out.println("Last ServerMessage this client recieved was: \n");
 				System.out.println(this.lastServMessage.toString() + "\n");
 			}
 			
 			if(this.lastClientMessage != null) {
-				System.out.println("Last ClientMessage reads: \n");
+				System.out.println("Last ClientMessage this client recieved was: \n");
 				System.out.println(this.lastClientMessage.toString() + "\n");
 			}
 		}
@@ -505,9 +524,12 @@ public class tClientTCP implements Runnable {
 					this.objOutStream.reset();
 				}
 			} catch (IOException e) {
-				System.out.println("tClient| IOException!");
-				// TODO Auto-generated catch block
-				e.printStackTrace();
+				
+				if(this.debugFlag == true) {
+					System.out.println("tClient| IOException in clientPerformSignOn!");
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				}
 			}
 		}
 		
@@ -529,8 +551,11 @@ public class tClientTCP implements Runnable {
 				this.objOutStream.reset();
 
 			} catch (IOException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
+				
+				if(this.debugFlag == true) {
+					System.out.println("tClient| IOException thrown in clientPerformSignOff!");
+					e.printStackTrace();
+				}
 			}
 		}
 
@@ -543,6 +568,7 @@ public class tClientTCP implements Runnable {
 		if (this.clientBuffInputStream != null && this.clientSocket != null) {
 
 			try {
+				
 				this.objInpStream.close();
 				this.objOutStream.close();
 				
@@ -553,10 +579,13 @@ public class tClientTCP implements Runnable {
 				this.clientSocket.shutdownOutput();
 
 				this.clientSocket.close();
+				
 			} catch (IOException e) {
-
-				System.out.println("tClient| IOException occurred during closeIO. Not fatal!");
-
+				
+				if(this.debugFlag == true) {
+					System.out.println("tClient| IOException occurred during closeIO. Not fatal!");
+					e.printStackTrace();
+				}
 			}
 		}
 	}
@@ -565,17 +594,25 @@ public class tClientTCP implements Runnable {
 		// Create a new BufferedInputStream from the inputStream generated via Socket
 		// method
 		try {
+			
 			this.inputStream = this.clientSocket.getInputStream();
 			this.clientBuffInputStream = new BufferedInputStream(this.inputStream);
 			this.objInpStream = new ObjectInputStream(this.clientBuffInputStream);
 			
 		} catch (EOFException e) {
 
-			System.out.println("tClient| EOF exception with ObjectInputStream!\n");
+			if(this.debugFlag == true) {
+				System.out.println("tClient| EOF exception from createInputStreams!\n");
+				e.printStackTrace();
+			}
+			
 
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
-			e.printStackTrace();
+			if(this.debugFlag == true) {
+				System.out.println("tClient| IOexception from createInputStreams!\n");
+				e.printStackTrace();
+			}
 		}
 	}
 
@@ -593,8 +630,10 @@ public class tClientTCP implements Runnable {
 
 
 		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
+			if(this.debugFlag == true) {
+				System.out.println("tClient| IOexception from createOutputStreams!\n");
+				e.printStackTrace();
+			}
 		}
 	}
 
@@ -647,8 +686,10 @@ public class tClientTCP implements Runnable {
 			if (this.clientSocket != null) {
 
 				if (this.clientSocket.isBound() && this.clientSocket.isConnected()) {
+					
 					if (this.objOutStream == null && this.objInpStream == null &&
 							this.clientBuffOutputStream == null && this.clientBuffInputStream == null) {
+						
 						this.createOutputStreams();
 						this.createInputStreams();
 					}
@@ -656,18 +697,24 @@ public class tClientTCP implements Runnable {
 
 				if (!this.clientSocket.isBound() && !this.clientSocket.isConnected()) {
 					try {
+						
 						this.clientSocket.bind(socketLocalAddr);
 						this.clientSocket.setReuseAddress(true);
 						this.clientSocket.connect(socketRemoteAddr);
+						
 					} catch (IOException e) {
-						System.out.println("tClient| Failed preflights!");
-						e.printStackTrace();
+						if(this.debugFlag == true) {
+							System.out.println("tClient| Failed preflights!");
+							e.printStackTrace();
+						}
 					}
 
 					if (this.objOutStream == null && this.objInpStream == null &&
 							this.clientBuffOutputStream == null && this.clientBuffInputStream == null) {
+						
 						this.createOutputStreams();
 						this.createInputStreams();
+						
 					}
 				}
 			}
@@ -678,14 +725,18 @@ public class tClientTCP implements Runnable {
 			try {
 				this.clientSocket.connect(socketRemoteAddr);
 			} catch (IOException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
+				if(this.debugFlag == true) {
+					System.out.println("tClient| Failed preflights!");
+					e.printStackTrace();
+				}
 			}
 			
 			if (this.objOutStream == null && this.objInpStream == null &&
 					this.clientBuffOutputStream == null && this.clientBuffInputStream == null) {
+				
 				this.createOutputStreams();
 				this.createInputStreams();
+				
 			}
 			
 		}
@@ -705,15 +756,21 @@ public class tClientTCP implements Runnable {
 
 		// Receive the TCP transmission
 
-		while (this.stopFlag == false) {
+		while (this.parentTransponder.getStopFlag() == false) {
 			// Receive Payload after SignOn
-			this.receiveMessages();
+			this.service();
 		}
-
+		
+		this.clientPerformSignOff();
 	}
 
 	public void stop() {
 
+		// debug output for when debugFlag set to TRUE
+		if (this.debugFlag == true) {
+			System.out.println("tClient| Stop method called!");
+		}
+		
 		this.stopFlag = true;
 		this.clientPerformSignOff();
 		this.closeIO();
@@ -835,6 +892,29 @@ public class tClientTCP implements Runnable {
 			status += this.lastClientMessage.toString() + "\n";
 		}
 
+		
+		// Check the masterClientMessages list
+		// and the masterServerMessages list
+		// for recieved messages, and print the list
+		PriorityBlockingQueue<ClientMessage<?>> cliMessMaster = this.parentTransponder.getMasterCliMsg();
+		PriorityBlockingQueue<ServerMessage<?>> servMessMaster = this.parentTransponder.getMasterServMsg();
+		
+		if(cliMessMaster.size() > 0) {
+			status += "--Printing Master ClientMessage Queue--\n";
+			status += cliMessMaster.toString() + "\n";
+		} else {
+			status += "Master ClientMessage Queue is either empty, or has an illegal size!\n";
+			status += "Not an issue if no ClientMessages have been sent to this tServer instance...\n";
+		}
+
+		if(servMessMaster.size() > 0) {
+			status += "--Printing Master ServerMessage Queue--\n";
+			status += servMessMaster.toString() + "\n";
+		} else {
+			status += "Master ServerMessage Queue is either empty, or has an illegal size!\n";
+			status += "Not an issue if no ServerMessages have been sent to this tServer instance...\n";
+		}
+		
 		return status;
 	}
 }

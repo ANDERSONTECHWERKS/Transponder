@@ -43,6 +43,7 @@ public class TransponderTCP implements Runnable {
 
 	private boolean debugFlag = false;
 	private boolean stopFlag = false;
+	private boolean startedFlag = false;
 
 	// newClient/ServerMessage boolean flags are used to indicate to an outside
 	// program that
@@ -141,6 +142,7 @@ public class TransponderTCP implements Runnable {
 	}
 
 	public void addClient(Socket cliSock) {
+		
 		tClientTCP addClient = new tClientTCP(cliSock);
 
 		addClient.setParentTransponder(this);
@@ -179,8 +181,10 @@ public class TransponderTCP implements Runnable {
 	// Run thread, configuring selected mode
 	@Override
 	public void run() {
-		Thread currThread = Thread.currentThread();
+		this.startedFlag = true;
 
+		Thread currThread = Thread.currentThread();
+		
 		if (this.mode == 1) {
 			if (this.serverSocket != null) {
 				currThread.setName("TransponderTCP| Mode 1");
@@ -207,7 +211,9 @@ public class TransponderTCP implements Runnable {
 	// Deprecated!)
 	public void stopAll() {
 		this.mode = 0;
-
+		this.stopFlag = true;
+		this.startedFlag = false;
+		
 		for (tClientTCP currClient : this.tClientSet) {
 			currClient.stop();
 		}
@@ -272,6 +278,10 @@ public class TransponderTCP implements Runnable {
 
 	public void setControllerMenu(ControllerMenu localMenu) {
 		this.localController = localMenu;
+	}
+	
+	protected void setStartedFlag(boolean flag) {
+		this.startedFlag = flag;
 	}
 
 	public void updateAllServerSMs(ServerMessage<?> servMessage) {
@@ -381,8 +391,8 @@ public class TransponderTCP implements Runnable {
 	// Mode 2 is client-only, no server
 	private void confClient() {
 
-		if (this.debugObj == null) {
-			System.out.println("transponderTCP| Not using debugObj for debug purposes! Messages only!");
+		if (this.debugObj == null && this.debugFlag == true) {
+			System.out.println("transponderTCP| Not using debugObj for debug purposes! Console output only!");
 		}
 
 		// Set mode, in case of mode switch
@@ -507,16 +517,10 @@ public class TransponderTCP implements Runnable {
 		return result;
 	}
 
-	// Not sure if i'll ever use this...
-	public Stream<ClientMessage<?>> getClientStream() {
-		return this.clientMessagesMaster.stream();
-
-	}
-
 	public void serverProcessSignOn(clientSignOn cson) {
 		// Check if the set already constains a sign-on object
 		if (this.csonSet.contains(cson)) {
-			System.out.println("TransponderTCP| clientSignOn object already present!");
+			System.out.println("TransponderTCP| clientSignOn object already present!\n");
 		}
 
 		if (this.debugFlag == true) {
@@ -530,6 +534,7 @@ public class TransponderTCP implements Runnable {
 		// Check if the set already constains a sign-off object
 		if (this.csoffSet.contains(csoff)) {
 			System.out.println("TransponderTCP| clientSignOff object already present!");
+			return;
 		}
 
 		if (this.debugFlag == true) {
@@ -679,6 +684,14 @@ public class TransponderTCP implements Runnable {
 	public synchronized ServerMessage<?> getLastSM() throws InterruptedException {
 		this.newServerMessage = false;
 		return this.serverMessagesMaster.take();
+	}
+	
+	public synchronized boolean getStopFlag() {
+		return this.stopFlag;
+	}
+	
+	public synchronized boolean getStartedFlag() {
+		return this.startedFlag;
 	}
 
 }

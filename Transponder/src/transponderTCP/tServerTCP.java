@@ -113,6 +113,7 @@ public class tServerTCP implements Runnable {
 				ServerMessage<?> inpMessage = (ServerMessage<?>) input;
 
 				if (this.debugFlag == true) {
+					
 					System.out.println("tServer| Received ServerMessage class!");
 					System.out.println("tServer| ServerMessage received in serviceStart() method!");
 					System.out.println("tServer| Message reads: \n" + inpMessage.toString());
@@ -146,6 +147,7 @@ public class tServerTCP implements Runnable {
 
 			// TODO: If we receive a clientSignOff object - gracefully close the connection!
 			if (input instanceof clientSignOff) {
+				
 				clientSignOff inpCliSignOff = (clientSignOff) input;
 
 				if (this.debugFlag == true) {
@@ -156,19 +158,27 @@ public class tServerTCP implements Runnable {
 
 				// Once we receive clientSignOff object, stop this tServer.
 				// We should still be listening at the TransponderTCP-level.
-				this.stopFlag = true;
 				this.parentTransponder.serverProcessSignOff(inpCliSignOff);
+				this.stop();
+
 			}
 
 		} catch (ClassNotFoundException e) {
-			System.out.println("tServer| Class not found! Shutting down!");
+			if(this.debugFlag == true) {
+				System.out.println("tServer| Class not found! Shutting down!");
+				e.printStackTrace();
+			}
+			this.parentTransponder.setStartedFlag(false);
 			this.stop();
-			e.printStackTrace();
 
 		} catch (IOException e) {
-			System.out.println("tServer| IO Exception! Shutting down!");
+			
+			if(this.debugFlag == true) {
+				System.out.println("tServer| IO Exception! Shutting down!");
+				e.printStackTrace();
+			}
+			this.parentTransponder.setStartedFlag(false);
 			this.stop();
-			e.printStackTrace();
 
 		}
 	}
@@ -228,9 +238,12 @@ public class tServerTCP implements Runnable {
 				}
 
 			} catch (IOException e) {
-				// TODO Auto-generated catch block
-				System.out.println("tServer| inputStream creation failed!");
-				e.printStackTrace();
+				
+				if(this.debugFlag == true) {
+					System.out.println("tServer| inputStream creation failed!");
+					e.printStackTrace();
+				}
+				
 			}
 		}
 
@@ -266,9 +279,11 @@ public class tServerTCP implements Runnable {
 				}
 
 			} catch (IOException e) {
-				// TODO Auto-generated catch block
-				System.out.println("tServer| outputStreams creation failed!");
-				e.printStackTrace();
+				
+				if (this.debugFlag == true) {
+					System.out.println("tServer| outputStreams creation failed!");
+					e.printStackTrace();
+				}
 			}
 
 		}
@@ -429,8 +444,13 @@ public class tServerTCP implements Runnable {
 			this.remoteSocketTCP.close();
 
 		} catch (IOException e) {
-			System.out.println("tServer| closeIO failed!");
-			e.printStackTrace();
+			
+			if(this.debugFlag == true) {
+				System.out.println("tServer| closeIO failed!");
+				e.printStackTrace();
+			}
+			
+			this.stopFlag = true;
 		}
 
 	}
@@ -515,7 +535,7 @@ public class tServerTCP implements Runnable {
 		// handle them
 		// accordingly.
 
-		while (stopFlag == false) {
+		while (this.parentTransponder.getStopFlag() == false) {
 			service();
 		}
 
@@ -624,7 +644,29 @@ public class tServerTCP implements Runnable {
 			status += "ServerMessage loaded. Current ServerMessage:\n";
 			status += this.servState.toString() + "\n";
 		}
+		
+		// Check the masterClientMessages list
+		// and the masterServerMessages list
+		// for recieved messages, and print the list
+		PriorityBlockingQueue<ClientMessage<?>> cliMessMaster = this.parentTransponder.getMasterCliMsg();
+		PriorityBlockingQueue<ServerMessage<?>> servMessMaster = this.parentTransponder.getMasterServMsg();
+		
+		if(cliMessMaster.size() > 0) {
+			status += "--Printing Master ClientMessage Queue--\n";
+			status += cliMessMaster.toString() + "\n";
+		} else {
+			status += "Master ClientMessage Queue is either empty, or has an illegal size!\n";
+			status += "Not an issue if no ClientMessages have been sent to this tServer instance...\n";
+		}
 
+		if(servMessMaster.size() > 0) {
+			status += "--Printing Master ServerMessage Queue--";
+			status += servMessMaster.toString() + "\n";
+		} else {
+			status += "Master ServerMessage Queue is either empty, or has an illegal size!\n";
+			status += "Not an issue if no ServerMessages have been sent to this tServer instance...\n";
+		}
+		
 		return status;
 	}
 

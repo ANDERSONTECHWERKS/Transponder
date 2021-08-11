@@ -150,7 +150,7 @@ public class ControllerMenu {
 	}
 
 	public static String controllerGreeting() {
-		String greeting = "---TransponderTCP---\n";
+		String greeting = "***Transponder Controller Interface***\n";
 		return greeting;
 	}
 
@@ -162,8 +162,6 @@ public class ControllerMenu {
 
 		// TODO: Fix menu object IAW their related menu items
 		while (stopFlag == false) {
-			
-			
 
 			System.out.println("---COMMANDS---");
 
@@ -201,6 +199,15 @@ public class ControllerMenu {
 			// Iterate through options, printing each out.
 			for (String currString : commandList) {
 				System.out.println(currString);
+			}
+			
+			// Output whether or not the current transponder has been started
+			if(this.currTransponder != null && this.currTransponder.getStartedFlag() == false) {
+				System.out.println("Transponder has not been started!");
+			}
+			
+			if(this.currTransponder != null && this.currTransponder.getStartedFlag() == true) {
+				System.out.println("Transponder has been started!");
 			}
 
 			int userChoice = userInput.nextInt();
@@ -311,7 +318,7 @@ public class ControllerMenu {
 
 				} else if (this.currTransponder instanceof TransponderTCP) {
 					System.out.println("Transponder already running!");
-					System.out.println("Stop and Clear Transponder before attempting to start a new one.");
+					System.out.println("Stop this Transponder instance before attempting to start a new one.");
 				}
 				break;
 
@@ -506,6 +513,18 @@ public class ControllerMenu {
 				break;
 				
 			case 11:
+				if(this.debugFlag == true) {
+					
+					if(this.mode == 1) {
+						System.out.println("Sending the following ClientMessage to all Clients!");
+						System.out.println(clientMess.toString());
+					}
+					
+					if(this.mode == 2) {
+						System.out.println("Sending the following ClientMessage to all Servers!");
+						System.out.println(clientMess.toString());
+					}
+				}
 				this.currTransponder.sendClientMessageToAll(clientMess);
 				break;
 
