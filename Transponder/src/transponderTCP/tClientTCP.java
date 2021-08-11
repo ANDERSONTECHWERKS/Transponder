@@ -452,7 +452,7 @@ public class tClientTCP implements Runnable {
 
 		try {
 
-				this.objOutStream.writeObject(message);
+				this.objOutStream.writeUnshared(message);
 				this.objOutStream.flush();
 				this.clientBuffOutputStream.flush();
 				this.clientSocket.getOutputStream().flush();
@@ -494,13 +494,11 @@ public class tClientTCP implements Runnable {
 			}
 			
 			try {
-				synchronized (this.objOutStream) {
 
-					this.objOutStream.writeObject(clientSON);
+					this.objOutStream.writeUnshared(clientSON);
 					this.objOutStream.flush();
 					this.clientBuffOutputStream.flush();
 					this.clientSocket.getOutputStream().flush();
-				}
 
 			} catch (IOException e) {
 				System.out.println("tClient| IOException!");
@@ -520,9 +518,10 @@ public class tClientTCP implements Runnable {
 
 			try {
 
-				this.objOutStream.writeObject(clientSOFF);
+				this.objOutStream.writeUnshared(clientSOFF);
 				this.objOutStream.flush();
 				this.clientBuffOutputStream.flush();
+				this.clientSocket.getOutputStream().flush();
 
 			} catch (IOException e) {
 				// TODO Auto-generated catch block

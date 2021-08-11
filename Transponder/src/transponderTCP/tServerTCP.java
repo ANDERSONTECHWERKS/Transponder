@@ -95,17 +95,12 @@ public class tServerTCP implements Runnable {
 					System.out.println("tServer| Message reads: \n" + inpMessage.toString());
 				}
 
-				synchronized(this.parentTransponder.getMasterCliMsg()) {
-					
 					// add message to the master list
 					this.parentTransponder.addCliMessageToMaster(inpMessage);
 
 					// New message has been collected, setting parentTransponder.newClientMessage
 					// flag to true
 					this.parentTransponder.setNewClientMessageFlag(true);
-					
-				}
-
 
 			}
 
@@ -118,8 +113,6 @@ public class tServerTCP implements Runnable {
 					System.out.println("tServer| ServerMessage received in serviceStart() method!");
 					System.out.println("tServer| Message reads: \n" + inpMessage.toString());
 				}
-
-				synchronized (this.parentTransponder.getMasterServMsg()) {
 					
 					// add this to the list of messages we recieved
 					this.parentTransponder.addServMessageToMaster(inpMessage);
@@ -127,7 +120,7 @@ public class tServerTCP implements Runnable {
 					// flag to true
 					this.parentTransponder.setNewServerMessageFlag(true);
 					
-				}
+				
 
 			}
 
@@ -202,7 +195,7 @@ public class tServerTCP implements Runnable {
 
 	// setOutgoingPayload assigns an outgoing payload object to this
 	// tServer's servState field.
-	public void setServerMessage(ServerMessage<?> servMessage) {
+	public synchronized void setServerMessage(ServerMessage<?> servMessage) {
 
 		// debug output for when debugFlag set to TRUE
 		if (this.debugFlag == true) {
@@ -301,7 +294,7 @@ public class tServerTCP implements Runnable {
 
 					// Transmit the object via ObjOutputStream!
 					// Flush is *all the way down*
-					this.objOutputStream.writeObject(servMessage);
+					this.objOutputStream.writeUnshared(servMessage);
 					this.objOutputStream.flush();
 					this.serverBuffOutStream.flush();
 					this.remoteSocketTCP.getOutputStream().flush();
@@ -338,7 +331,7 @@ public class tServerTCP implements Runnable {
 					}
 
 					// Transmit the object via ObjOutputStream!
-					this.objOutputStream.writeObject(message);
+					this.objOutputStream.writeUnshared(message);
 					this.objOutputStream.flush();
 					this.serverBuffOutStream.flush();
 					this.remoteSocketTCP.getOutputStream().flush();
