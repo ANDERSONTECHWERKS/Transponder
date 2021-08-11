@@ -2,7 +2,7 @@ package transponderTCP;
 
 import java.util.Comparator;
 
-public class MessageDateComparator implements Comparator<ClientMessage<?>>{
+public class MessageDateComparatorCM implements Comparator<ClientMessage<?>>{
 
 	@Override
 	public int compare(ClientMessage<?> arg0, ClientMessage<?> arg1) {

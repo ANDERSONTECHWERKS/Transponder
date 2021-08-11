@@ -5,14 +5,14 @@ import java.net.InetAddress;
 import java.net.SocketAddress;
 import java.util.Date;
 
-public abstract class ServerMessage<S> implements Serializable{
+public abstract class ServerMessage<S> implements Serializable,Comparable<ServerMessage<S>>{
 
 	/**
 	 * 
 	 */
 	private static final long serialVersionUID = 1L;
 
-	private  Date creationDate = new Date();
+	private  Date timestamp = new Date();
 
 	private InetAddress clientAddr = null;
 	private InetAddress serverAddr = null;
@@ -36,8 +36,8 @@ public abstract class ServerMessage<S> implements Serializable{
 		return this.serverAddr;
 	}
 	
-	public Date getCreationDate() {
-		return this.creationDate;
+	public Date getTimestamp() {
+		return this.timestamp;
 	}
 
 	public void setPayload(S o) {
@@ -52,7 +52,7 @@ public abstract class ServerMessage<S> implements Serializable{
 		return this.message;
 	}
 	
-	public Object getPayload() {
+	public S getPayload() {
 		return payload;
 	}
 	
