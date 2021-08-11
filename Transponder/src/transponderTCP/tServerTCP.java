@@ -36,7 +36,7 @@ public class tServerTCP implements Runnable {
 	private ObjectOutputStream objOutputStream = null;
 	private ObjectInputStream objInputStream = null;
 
-	private ServerMessage<?> servState = null;
+	private volatile ServerMessage<?> servState = null;
 
 	private debugObj debugObject = null;
 
@@ -45,6 +45,7 @@ public class tServerTCP implements Runnable {
 
 	private TransponderTCP parentTransponder = null;
 
+	
 	public tServerTCP(Socket serverSocket) {
 		this.remoteSocketTCP = serverSocket;
 	}
@@ -78,8 +79,11 @@ public class tServerTCP implements Runnable {
 	public synchronized void service() {
 
 		try {
-
-			Object input = this.objInputStream.readObject();
+			Object input = null;
+			
+			synchronized(this.objInputStream){
+				input = this.objInputStream.readUnshared();
+			}
 
 			// Begin writing service behaviors here.
 			// Default behavior is to send a single payload
@@ -245,14 +249,16 @@ public class tServerTCP implements Runnable {
 		if (this.objOutputStream == null) {
 
 			try {
+				synchronized(this.remoteSocketTCP) {
+					this.outputStream = this.remoteSocketTCP.getOutputStream();
+					this.serverBuffOutStream = new BufferedOutputStream(this.outputStream);
+					this.objOutputStream = new ObjectOutputStream(this.serverBuffOutStream);
+					this.objOutputStream.flush();
+					this.serverBuffOutStream.flush();
+					this.remoteSocketTCP.getOutputStream().flush();
+					
+				}
 
-				this.outputStream = this.remoteSocketTCP.getOutputStream();
-				this.serverBuffOutStream = new BufferedOutputStream(this.outputStream);
-				this.objOutputStream = new ObjectOutputStream(this.serverBuffOutStream);
-				this.objOutputStream.flush();
-				this.serverBuffOutStream.flush();
-				this.remoteSocketTCP.getOutputStream().flush();
-				
 				// debug output
 				if (this.debugFlag == true) {
 					System.out.println("tServer| outputStreams created successfully!");
@@ -292,12 +298,15 @@ public class tServerTCP implements Runnable {
 
 					this.preflight();
 
-					// Transmit the object via ObjOutputStream!
-					// Flush is *all the way down*
-					this.objOutputStream.writeUnshared(servMessage);
-					this.objOutputStream.flush();
-					this.serverBuffOutStream.flush();
-					this.remoteSocketTCP.getOutputStream().flush();
+					synchronized(this.objOutputStream) {
+						// Transmit the object via ObjOutputStream!
+						// Flush is *all the way down*
+						this.objOutputStream.writeUnshared(servMessage);
+						this.objOutputStream.flush();
+						this.serverBuffOutStream.flush();
+						this.remoteSocketTCP.getOutputStream().flush();
+						this.objOutputStream.reset();
+					}
 				}
 			}
 
@@ -330,11 +339,15 @@ public class tServerTCP implements Runnable {
 						System.out.println("tServer| Writing Object: \n" + message.toString());
 					}
 
-					// Transmit the object via ObjOutputStream!
-					this.objOutputStream.writeUnshared(message);
-					this.objOutputStream.flush();
-					this.serverBuffOutStream.flush();
-					this.remoteSocketTCP.getOutputStream().flush();
+					synchronized(this.objOutputStream) {
+						// Transmit the object via ObjOutputStream!
+						this.objOutputStream.writeUnshared(message);
+						this.objOutputStream.flush();
+						this.serverBuffOutStream.flush();
+						this.remoteSocketTCP.getOutputStream().flush();
+						this.objOutputStream.reset();
+
+					}
 				}
 			}
 
@@ -370,7 +383,7 @@ public class tServerTCP implements Runnable {
 	// TODO: Future - Perhaps use this space for hashchecking?
 	// TODO: Implement Security Manager stuff here
 
-	public boolean checkMessageIntegrity(Object o) {
+	private boolean checkMessageIntegrity(Object o) {
 
 		if (o instanceof ServerMessage<?>) {
 			ServerMessage<?> inpPayload = (ServerMessage<?>) o;

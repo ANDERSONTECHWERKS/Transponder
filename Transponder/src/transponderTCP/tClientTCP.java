@@ -44,8 +44,8 @@ public class tClientTCP implements Runnable {
 	private clientSignOff clientSOFF = null;
 	private clientSignOn clientSON = null;
 
-	private ServerMessage<?> lastServMessage = null;
-	private ClientMessage<?> lastClientMessage = null;
+	private volatile ServerMessage<?> lastServMessage = null;
+	private volatile ClientMessage<?> lastClientMessage = null;
 
 	private boolean stopFlag = false;
 	private boolean debugFlag = false;
@@ -325,7 +325,7 @@ public class tClientTCP implements Runnable {
 		return true;
 	}
 
-	public synchronized void receiveMessages() {
+	public void receiveMessages() {
 
 		// TODO: Create type-check for this.incomingPayload
 		// This is likely a huge security issue to just *blatantly accept* objects and
@@ -333,8 +333,11 @@ public class tClientTCP implements Runnable {
 		// as Payloads.
 
 		try {
-
-			Object inputObj = objInpStream.readObject();
+			Object inputObj = null;
+			
+			synchronized(this.objInpStream) {
+				inputObj = objInpStream.readUnshared();
+			}
 
 			if (inputObj instanceof ClientMessage<?>) {
 				
@@ -410,15 +413,13 @@ public class tClientTCP implements Runnable {
 			// TODO: Think about what we want to do if we hit the EOF
 
 			System.out.println("tClient| End of File! Assuming remote side closed or stopped transmitting! Not fatal.\n");
-
+			
 		} catch (IOException e) {
 
 			System.out.println("tClient| IOException! Stopping gracefully! \n");
 
 			this.stopFlag = true;
 			this.closeIO();
-
-			e.printStackTrace();
 
 		} catch (ClassNotFoundException e) {
 
@@ -451,12 +452,14 @@ public class tClientTCP implements Runnable {
 		this.preflight();
 
 		try {
-
+			synchronized(this.objOutStream) {
 				this.objOutStream.writeUnshared(message);
 				this.objOutStream.flush();
 				this.clientBuffOutputStream.flush();
 				this.clientSocket.getOutputStream().flush();
+				this.objOutStream.reset();
 
+			}
 			return true;
 		} catch (IOException e) {
 			e.printStackTrace();
@@ -494,12 +497,13 @@ public class tClientTCP implements Runnable {
 			}
 			
 			try {
-
+				synchronized(this.objOutStream) {
 					this.objOutStream.writeUnshared(clientSON);
 					this.objOutStream.flush();
 					this.clientBuffOutputStream.flush();
 					this.clientSocket.getOutputStream().flush();
-
+					this.objOutStream.reset();
+				}
 			} catch (IOException e) {
 				System.out.println("tClient| IOException!");
 				// TODO Auto-generated catch block
@@ -522,6 +526,7 @@ public class tClientTCP implements Runnable {
 				this.objOutStream.flush();
 				this.clientBuffOutputStream.flush();
 				this.clientSocket.getOutputStream().flush();
+				this.objOutStream.reset();
 
 			} catch (IOException e) {
 				// TODO Auto-generated catch block

@@ -282,19 +282,18 @@ public class Tests extends TestCase{
 			e.printStackTrace();
 		}
 		
-		TransponderTCP testTranspTCP = new TransponderTCP(servSock);
+		TransponderTCP testServer = new TransponderTCP(servSock);
 
-		Payload testPayload = new Payload(7,"SIGMA");
+		Payload testPayload = new Payload(8,"REIN");
 
-		testTranspTCP.setDebugFlag(true);
-		testTranspTCP.setInitServerMessage(testPayload);
+		testServer.setDebugFlag(true);
+		testServer.setInitServerMessage(testPayload);
 		
-		Thread transpThread = new Thread(testTranspTCP);
-		
+		Thread transpThread = new Thread(testServer);
 		transpThread.start();
 		
-		HashSet<tClientTCP> clientSet = new HashSet<tClientTCP>();
-		HashSet<Thread> clientThreadSet = new HashSet<Thread>();
+		TransponderTCP testClient = new TransponderTCP(2);
+		testClient.setDebugFlag(true);
 
 		for(int i = 0; i < 10; i++) {
 			
@@ -309,33 +308,20 @@ public class Tests extends TestCase{
 			try {
 
 				clientSock.bind(clientAddrInc);
+				clientSock.connect(serverAddr);
 
 			} catch (IOException e) {
 				// TODO Auto-generated catch block
 				e.printStackTrace();
 			}
-			
-			tClientTCP newClient = new tClientTCP(clientSock);
-			
-			newClient.setLocalSocketAddress(clientAddrInc);
-			newClient.setRemoteSocketAddress(serverAddr);
-			
-			newClient.generateClientSignOn(clientAddrInc.getAddress(), serverAddr.getAddress());
-			newClient.generateClientSignOff(clientAddrInc.getAddress(), serverAddr.getAddress());
-			newClient.setDebugFlag(true);
-			
-			clientSet.add(newClient);
-
+			// add testClient tClientTCP's via clientSock constructor
+			testClient.addClient(clientSock);
 		}
+		Thread clientThread = new Thread(testClient);
+		clientThread.start();
 		
-		for(tClientTCP currClient : clientSet) {
-			Thread newThread = new Thread(currClient);
-			clientThreadSet.add(newThread);
-		}
-						
-		for(Thread currThread : clientThreadSet) {
-			currThread.start();
-		}
+		System.out.println("*---testClient status---*\n" + testClient.getStatus());
+
 	}
 	
 	@Test
@@ -409,7 +395,6 @@ public class Tests extends TestCase{
 		testTranspCli.sendClientMessageToAll(testMessage3);
 		testTranspCli.sendClientMessageToAll(testMessage4);
 		
-		testTranspServ.sendServerMessageToAll(testPayload);
 		testTranspServ.sendServerMessageToAll(testPayload2);
 		
 		System.out.println("Client Master ClientMessage list contains the following: \n" + testTranspCli.getMasterCliMsg().toString()+ "\n");

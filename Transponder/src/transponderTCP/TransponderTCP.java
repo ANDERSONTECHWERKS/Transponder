@@ -144,6 +144,8 @@ public class TransponderTCP implements Runnable {
 		tClientTCP addClient = new tClientTCP(cliSock);
 
 		addClient.setParentTransponder(this);
+		
+		addClient.setDebugFlag(this.debugFlag);
 
 		InetAddress clientAddrLocal = cliSock.getLocalAddress();
 		InetAddress clientAddrRemote = cliSock.getInetAddress();
@@ -155,6 +157,7 @@ public class TransponderTCP implements Runnable {
 		addClient.setCSoffObject(addClient.generateClientSignOff(clientAddrLocal, clientAddrRemote));
 
 		this.tClientSet.add(addClient);
+		
 
 	}
 
@@ -471,6 +474,9 @@ public class TransponderTCP implements Runnable {
 	public String getStatus() {
 		String result = "Status for current TransponderTCP: " + this + "\n";
 
+		Thread currThread = Thread.currentThread();
+		result += "---Thread Status---\n" + currThread.getState() + "\n";
+		
 		if (this.mode == 0) {
 			result += "Transponder stopped! \n";
 		}
@@ -594,9 +600,9 @@ public class TransponderTCP implements Runnable {
 		return result;
 	}
 
-	public void serverSendSM(ServerMessage<?> sm, tServerTCP server) {
-		server.sendServerMessage(sm);
-	}
+//	public void serverSendSM(ServerMessage<?> sm, tServerTCP server) {
+//		server.sendServerMessage(sm);
+//	}
 
 	public boolean getNewCMFlag() {
 		return this.newClientMessage;

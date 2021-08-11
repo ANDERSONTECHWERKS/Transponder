@@ -194,6 +194,8 @@ public class ControllerMenu {
 				commandList.add("8. Set ServerMessage Content");
 				commandList.add("9. Send ClientMessage to all clients");
 				commandList.add("10. Send ServerMessage to all clients");
+				commandList.add("11. Send ClientMessage to all servers");
+
 			}
 
 			// Iterate through options, printing each out.
@@ -502,6 +504,11 @@ public class ControllerMenu {
 				}
 				
 				break;
+				
+			case 11:
+				this.currTransponder.sendClientMessageToAll(clientMess);
+				break;
+
 			default:
 				System.out.println("Please choose a valid option!");
 			}
